@@ -28,7 +28,7 @@
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth; scroll-padding-top:86px}
-@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{animation:none!important; transition:none!important} }
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
 body{margin:0; background:var(--cream); color:var(--navy); font:17px/1.6 var(--font); -webkit-font-smoothing:antialiased; overflow-x:hidden}
 h1,h2,h3,h4{margin:0; line-height:1.12; font-weight:800; letter-spacing:-.01em}
 p{margin:0}
@@ -1086,7 +1086,6 @@ const center=n=>[n.x+(n.w||170)/2, n.y+(n.h||62)/2];
   (function(){
     const canvas=document.getElementById("netBg"); if(!canvas||!canvas.getContext) return;
     const ctx=canvas.getContext("2d"); let w,h,dpr,nodes,raf; const mouse={x:-9999,y:-9999}; const MAXD=145, MOUSE_D=150;
-    const still=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     function resize(){ dpr=Math.min(window.devicePixelRatio||1,2); w=canvas.clientWidth; h=canvas.clientHeight; canvas.width=w*dpr; canvas.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
       const count=Math.max(24,Math.min(70,Math.floor((w*h)/26000)));
       nodes=Array.from({length:count},()=>({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,r:Math.random()*1.3+1,accent:Math.random()<.07})); }
@@ -1100,7 +1099,6 @@ const center=n=>[n.x+(n.w||170)/2, n.y+(n.h||62)/2];
       for(const n of nodes){ ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fillStyle=n.accent?"rgba(226,19,19,0.32)":"rgba(27,33,61,0.26)"; ctx.fill(); } }
     function frame(){ draw(true); raf=requestAnimationFrame(frame); }
     resize();
-    if(still){ draw(false); window.addEventListener("resize",()=>{ resize(); draw(false); }); return; }
     frame();
     window.addEventListener("resize",resize);
     window.addEventListener("mousemove",e=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
