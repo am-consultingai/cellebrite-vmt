@@ -506,10 +506,9 @@ footer{margin-top:90px; background:var(--navy); color:#fff}
         </div>
         <label class="toggle"><input type="checkbox" id="cloudToggle"> Cellebrite cloud only</label>
         <label class="toggle"><input type="checkbox" id="confToggle"> Confidential path</label>
-        <label class="toggle"><input type="checkbox" id="animToggle"> Animate</label>
         <button class="ghost-sm" type="button" id="resetBtn">Reset</button>
       </div>
-      <div class="svgwrap"><svg id="main" viewBox="0 0 1200 760" role="group" aria-label="VMT system architecture diagram"></svg></div>
+      <div class="svgwrap"><svg id="main" class="animate" viewBox="0 0 1200 760" role="group" aria-label="VMT system architecture diagram"></svg></div>
       <div class="legend" id="legend"></div>
       <div class="hint">Link straight to a card with <code>#c/hibob</code>, a flow with <code>#f/rating</code> or a phase with <code>#p/3</code>.</div>
     </div>
@@ -1181,11 +1180,10 @@ function applyFilters(){
 }
 ["search"].forEach(id=>document.getElementById(id).addEventListener("input",applyFilters));
 ["confToggle","cloudToggle"].forEach(id=>document.getElementById(id).addEventListener("change",applyFilters));
-document.getElementById("animToggle").addEventListener("change",ev=>svg.classList.toggle("animate",ev.target.checked));
 document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ phase=b.dataset.phase; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); applyFilters(); }));
 document.getElementById("resetBtn").addEventListener("click",()=>{
-  document.getElementById("search").value=""; ["confToggle","cloudToggle","animToggle"].forEach(i=>document.getElementById(i).checked=false);
-  svg.classList.remove("animate"); phase="all"; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.phase==="all"))); applyFilters(); });
+  document.getElementById("search").value=""; ["confToggle","cloudToggle"].forEach(i=>document.getElementById(i).checked=false);
+  phase="all"; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.phase==="all"))); applyFilters(); });
 
 /* ---------- Pop-up card ---------- */
 const dlg=document.getElementById("cardDlg");
