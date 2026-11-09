@@ -1,0 +1,1485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>VMT System Architecture | AM Consulting</title>
+<meta name="description" content="Interactive architecture and execution plan for the in-house VMT Performance & Goals System, prepared by AM Consulting.">
+<link rel="icon" href="https://cdn.jsdelivr.net/gh/am-consultingai/am-assets@v2/logo/am-favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  /* AM Consulting look & feel (ai-readiness.amconsultingai.com) */
+  --navy:#1B213D; --navy-77:rgba(27,33,61,.77); --navy-55:rgba(27,33,61,.55); --navy-12:rgba(27,33,61,.12);
+  --cream:#FFFEF5; --white:#FFFFFF; --red:#E21313; --red-soft:#fbe6e6; --pale:#E6ECF6; --pale-deep:#d6e0f1;
+  --line:rgba(27,33,61,.1); --font:"Assistant","Heebo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r-pill:100px; --r-card:28px; --r-sm:16px;
+  --shadow-card:0 7px 18px rgba(27,33,61,.1); --shadow-deep:0 24px 60px rgba(27,33,61,.18);
+  --container:1180px; --tr:.35s cubic-bezier(.2,.7,.3,1);
+  /* diagram kinds */
+  --k-user:#64748b; --k-identity:#6d4bd8; --k-core:#2f5bd3; --k-data:#0f8a7e; --k-conf:#c26a00;
+  --k-guard:#15803d; --k-ai:#b5179e; --k-ext:#7b8494; --cloud:var(--navy);
+  --edge:#a3abbb; --halo:#ffffff; --surface:#ffffff; --surface-2:#f5f7fb; --muted:var(--navy-77); --faint:var(--navy-55);
+  --accent:var(--red);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:86px}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{animation:none!important; transition:none!important} }
+body{margin:0; background:var(--cream); color:var(--navy); font:17px/1.6 var(--font); -webkit-font-smoothing:antialiased; overflow-x:hidden}
+h1,h2,h3,h4{margin:0; line-height:1.12; font-weight:800; letter-spacing:-.01em}
+p{margin:0}
+a{color:var(--navy)}
+.red{color:var(--red)}
+.container{max-width:var(--container); margin:0 auto; padding:0 24px}
+@media (max-width:640px){ .container{padding:0 16px} }
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--red); outline-offset:3px; border-radius:8px}
+
+/* ---------- Nav ---------- */
+.nav{position:sticky; top:0; z-index:40; background:rgba(255,254,245,.9); backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line)}
+.nav-in{max-width:1380px; margin:0 auto; padding:0 24px; min-height:74px; display:flex; align-items:center; gap:22px}
+.nav-logo{height:40px; width:auto; flex:none}
+.nav-client{display:flex; align-items:center; gap:10px; padding-left:18px; border-left:1px solid var(--line); flex:none}
+.nav-client span{font-size:12.5px; font-weight:700; color:var(--navy-55); text-transform:uppercase; letter-spacing:.08em; white-space:nowrap}
+.nav-client img{height:24px; width:auto; display:block}
+@media (max-width:640px){ .nav-client span{display:none} .nav-client{padding-left:12px} .nav-client img{height:18px} .nav-logo{height:32px} .nav .pill-btn{display:none} }
+.nav-tag{font-size:13px; font-weight:600; color:var(--navy-55); padding-left:18px; border-left:1px solid var(--line); white-space:nowrap}
+.nav-links{display:flex; gap:18px; margin-left:auto; font-size:14.5px; font-weight:600}
+.nav-links a{text-decoration:none; color:var(--navy-77); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap}
+.nav-links a:hover,.nav-links a.active{color:var(--navy); border-bottom-color:var(--red)}
+@media (max-width:1320px){ .nav-links{display:none} .nav-tag{display:none} .nav .pill-btn{margin-left:auto} }
+
+/* ---------- Buttons ---------- */
+.pill-btn{display:inline-flex; align-items:center; gap:14px; background:var(--navy); color:#fff; border:0; border-radius:var(--r-pill); padding:7px 26px 7px 7px; font-size:16.5px; font-weight:700; text-decoration:none; cursor:pointer; box-shadow:var(--shadow-deep); transition:transform var(--tr), box-shadow var(--tr); white-space:nowrap}
+.pill-btn:hover{transform:translateY(-2px)}
+.pill-btn .dot{width:42px; height:42px; border-radius:50%; background:var(--red); display:grid; place-items:center; flex:none}
+.pill-btn .dot svg{width:18px; height:18px; stroke:#fff}
+.pill-btn.ghost{background:transparent; color:var(--navy); border:1.5px solid var(--navy-12); box-shadow:none}
+.pill-btn.ghost .dot{background:var(--navy)}
+.pill-btn.sm{font-size:14.5px; padding:5px 18px 5px 5px; gap:10px}
+.pill-btn.sm .dot{width:34px; height:34px}
+.pill-btn.sm .dot svg{width:15px; height:15px}
+.round-btn{width:44px; height:44px; border-radius:50%; border:1.5px solid var(--navy-12); background:#fff; color:var(--navy); display:grid; place-items:center; cursor:pointer; flex:none; transition:border-color var(--tr)}
+.round-btn:hover{border-color:var(--navy)}
+.round-btn svg{width:18px; height:18px; stroke:currentColor}
+
+/* ---------- Sections ---------- */
+section{padding:84px 0 0}
+.eyebrow{display:flex; align-items:center; gap:10px; font-size:13.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--red)}
+.eyebrow::before{content:""; width:26px; height:2px; background:var(--red); border-radius:2px}
+.sec-h{font-size:clamp(30px,4.4vw,46px); margin-top:12px; max-width:24ch}
+.sec-sub{margin-top:12px; font-size:18.5px; color:var(--navy-77); max-width:68ch}
+.sec-head{margin-bottom:30px}
+.panel{background:#fff; border-radius:var(--r-card); box-shadow:var(--shadow-card); border:1px solid var(--line)}
+
+/* ---------- Hero ---------- */
+.hero{position:relative; padding:64px 0 40px; overflow:hidden}
+.net-bg{position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; display:block}
+.hero-grid{position:relative; display:grid; grid-template-columns:1.12fr 1fr; gap:48px; align-items:center}
+@media (max-width:980px){ .hero-grid{grid-template-columns:1fr} }
+.hero .tagline{display:inline-flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--line); border-radius:var(--r-pill); padding:6px 16px 6px 8px; font-size:14px; font-weight:700; box-shadow:var(--shadow-card)}
+.hero .tagline img{width:24px; height:24px; border-radius:6px}
+.hero h1{font-size:clamp(42px,6.2vw,74px); margin-top:22px; line-height:1.02}
+.hero .lede{margin-top:20px; font-size:20px; color:var(--navy-77); max-width:34ch}
+.hero .cta{display:flex; flex-wrap:wrap; gap:14px; margin-top:30px}
+.stats{display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-top:44px}
+@media (max-width:980px){ .stats{grid-template-columns:repeat(3,1fr)} }
+.stat b{display:block; font-size:34px; font-weight:800; line-height:1}
+.stat b small{font-size:18px}
+.stat span{display:block; margin-top:6px; font-size:13.5px; line-height:1.25; color:var(--navy-55); font-weight:600}
+.vmt-card{position:relative; background:var(--navy); border-radius:var(--r-card); box-shadow:var(--shadow-deep); padding:22px 22px 76px; color:#fff}
+.vmt-card svg{width:100%; height:auto; display:block}
+.vmt-card .caption{position:absolute; left:16px; right:16px; bottom:16px; background:rgba(255,254,245,.96); color:var(--navy); border-radius:var(--r-sm); padding:12px 16px; display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px}
+.vmt-card .caption i{width:10px; height:10px; border-radius:50%; background:var(--red); box-shadow:0 0 0 4px var(--red-soft); flex:none}
+
+/* principles + context */
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(245px,1fr)); gap:16px}
+.tile{background:#fff; border:1px solid var(--line); border-radius:22px; padding:22px; box-shadow:var(--shadow-card); transition:transform var(--tr), box-shadow var(--tr)}
+.tile:hover{transform:translateY(-3px); box-shadow:var(--shadow-deep)}
+.tile .ic{width:48px; height:48px; border-radius:14px; background:var(--pale); display:grid; place-items:center; margin-bottom:14px}
+.tile .ic svg{width:24px; height:24px; stroke:var(--navy)}
+.tile h3{font-size:19px}
+.tile p{margin-top:6px; color:var(--navy-77); font-size:15.5px; line-height:1.45}
+.ctx{display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:16px; margin-top:16px}
+@media (max-width:980px){ .ctx{grid-template-columns:1fr} }
+.ctx .panel{padding:22px 24px}
+.ctx h4{font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:var(--navy-55); font-weight:800; margin-bottom:12px}
+.bigline{display:flex; align-items:baseline; gap:10px; margin-bottom:12px}
+.bigline b{font-size:40px; font-weight:800; line-height:1}
+.bigline span{color:var(--navy-55); font-weight:600}
+.stack{display:flex; height:16px; border-radius:var(--r-pill); overflow:hidden; background:var(--pale)}
+.stack i{display:block; height:100%}
+.stack-legend{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:12px; font-size:14px; color:var(--navy-77); font-weight:600}
+.stack-legend span{display:inline-flex; align-items:center; gap:6px}
+.stack-legend i{width:10px; height:10px; border-radius:3px; display:inline-block}
+.certs{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.cert{border:1.5px solid var(--navy-12); border-radius:16px; padding:10px 12px; display:flex; gap:10px; align-items:center; font-weight:700; font-size:14.5px; line-height:1.2}
+.cert svg{width:22px; height:22px; stroke:var(--k-guard); flex:none}
+.cert small{display:block; font-weight:600; color:var(--navy-55); font-size:12.5px}
+.logos{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+.logos div{display:flex; flex-direction:column; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--navy-77)}
+.logos img{width:46px; height:46px; border-radius:12px; background:#fff; border:1px solid var(--line); padding:7px; box-shadow:var(--shadow-card); object-fit:contain}
+.fine{font-size:13px; color:var(--navy-55); margin-top:12px}
+
+/* ---------- Diagram ---------- */
+.diagram-card{overflow:hidden}
+.toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:16px 18px; border-bottom:1px solid var(--line); background:var(--surface-2)}
+.toolbar input[type=search]{flex:1 1 220px; min-width:170px; border:1.5px solid var(--navy-12); background:#fff; color:var(--navy); border-radius:var(--r-pill); padding:10px 18px; font:inherit; font-size:15px}
+.seg{display:inline-flex; border:1.5px solid var(--navy-12); border-radius:var(--r-pill); overflow:hidden; background:#fff}
+.seg button{border:0; background:transparent; color:var(--navy-77); padding:8px 14px; font-size:14px; font-weight:700; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy); color:#fff}
+.toggle{display:inline-flex; align-items:center; gap:7px; font-size:14.5px; font-weight:600; color:var(--navy-77); cursor:pointer; user-select:none; background:#fff; border:1.5px solid var(--navy-12); border-radius:var(--r-pill); padding:7px 14px}
+.toggle input{accent-color:var(--red)}
+.ghost-sm{border:1.5px solid var(--navy-12); background:#fff; color:var(--navy); border-radius:var(--r-pill); padding:8px 16px; font-weight:700; font-size:14px; cursor:pointer}
+.svgwrap{overflow-x:auto; padding:10px}
+.svgwrap svg{display:block; width:100%; min-width:880px; height:auto}
+.legend{display:flex; flex-wrap:wrap; gap:8px 16px; padding:14px 18px; border-top:1px solid var(--line); font-size:14px; font-weight:600; color:var(--navy-77)}
+.legend span{display:inline-flex; align-items:center; gap:7px}
+.sw{width:13px; height:13px; border-radius:4px; display:inline-block}
+.lg-line{width:24px; height:0; border-top:2px solid var(--edge); display:inline-block}
+.lg-line.conf{border-top:2px dashed var(--k-conf)}
+.hint{font-size:13.5px; color:var(--navy-55); padding:0 18px 16px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.85em; background:var(--pale); padding:.1em .45em; border-radius:6px}
+
+svg text{font-family:var(--font)}
+.node{cursor:pointer; outline:none}
+.node .nbg{stroke-width:1.3; transition:stroke-width .15s}
+.node:hover .nbg,.node:focus-visible .nbg{stroke-width:2.6}
+.node.sel .nbg{stroke-width:3.2}
+.node:focus-visible .nbg{stroke:var(--red)}
+.node .nl{font-size:14px; font-weight:800; fill:var(--navy)}
+.node .ns{font-size:11.5px; font-weight:600; fill:var(--navy-77)}
+.node .later-pill{fill:#fff; stroke:var(--navy-12)}
+.node .later-t{font-size:9.5px; fill:var(--navy-77); font-weight:800; letter-spacing:.04em}
+.logo-tile{fill:#fff; stroke:var(--line)}
+.edge path{fill:none; stroke:var(--edge); stroke-width:1.7}
+.edge.conf path{stroke:var(--k-conf); stroke-dasharray:6 4}
+.edge text{font-size:11.5px; font-weight:600; fill:var(--navy-77); paint-order:stroke; stroke:var(--halo); stroke-width:4px; stroke-linejoin:round}
+.edge.on path{stroke:var(--red); stroke-width:2.6}
+.node,.edge{transition:opacity .18s}
+.dim{opacity:.15}
+svg.hovering .node:not(.on), svg.hovering .edge:not(.on){opacity:.2}
+svg.animate .edge path{stroke-dasharray:6 5; animation:flow 1.1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-22}}
+.cloud-zone{fill:rgba(27,33,61,.035); stroke:var(--navy); stroke-width:2; stroke-dasharray:8 5}
+.cloud-tab{fill:var(--navy)}
+.cloud-tab-t{font-size:12.5px; font-weight:800; fill:#fff; letter-spacing:.04em}
+.boundary-t{font-size:12px; fill:var(--navy); font-weight:800}
+.colhead{font-size:11px; fill:var(--navy-55); font-weight:800; letter-spacing:.1em}
+
+/* ---------- Pop-up cards ---------- */
+dialog.pop{border:0; padding:0; border-radius:var(--r-card); width:min(980px, calc(100vw - 24px)); max-height:calc(100vh - 28px); background:#fff; color:var(--navy); box-shadow:var(--shadow-deep); overflow:auto}
+dialog.pop[open]{animation:popin .32s cubic-bezier(.2,.7,.3,1)}
+@keyframes popin{from{opacity:0; transform:translateY(14px) scale(.96)} to{opacity:1; transform:none}}
+dialog.pop::backdrop{background:rgba(27,33,61,.5); backdrop-filter:blur(4px)}
+.cd-hero{position:relative; padding:30px 32px 24px; display:flex; gap:20px; align-items:center; background:linear-gradient(120deg, color-mix(in srgb, var(--kc) 17%, #fff) 0%, #fff 72%); border-bottom:1px solid var(--line)}
+.cd-ico{width:84px; height:84px; border-radius:24px; background:#fff; box-shadow:var(--shadow-card); display:grid; place-items:center; flex:none; border:1px solid var(--line)}
+.cd-ico img{width:54px; height:54px; object-fit:contain; border-radius:10px}
+.cd-ico svg{width:40px; height:40px}
+.cd-kind{font-size:13px; font-weight:800; letter-spacing:.12em; text-transform:uppercase}
+.cd-hero h3{font-size:clamp(26px,3.4vw,36px); margin-top:2px}
+.cd-hero .sub{font-size:17px; color:var(--navy-77); font-weight:600}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.chip{display:inline-flex; align-items:center; gap:7px; border-radius:var(--r-pill); padding:4px 12px; font-size:13.5px; font-weight:700; background:#fff; border:1.5px solid var(--navy-12); color:var(--navy)}
+.chip img{width:16px; height:16px; border-radius:4px}
+.chip.cloud{background:var(--navy); color:#fff; border-color:var(--navy)}
+.chip.btn{cursor:pointer}
+.chip.btn:hover{border-color:var(--red); color:var(--red)}
+.x-btn{position:absolute; top:18px; right:18px}
+.cd-body{padding:26px 32px 8px; display:grid; grid-template-columns:1.15fr .85fr; gap:26px}
+@media (max-width:800px){ .cd-body{grid-template-columns:1fr} .cd-hero{flex-direction:column; align-items:flex-start; padding-right:70px} }
+.cd-purpose{font-size:18px; line-height:1.55}
+.label{font-size:12.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--navy-55); margin:22px 0 10px}
+.label:first-child{margin-top:0}
+.tiers{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+.tier{border-radius:14px; padding:10px 12px; border:1.5px dashed var(--navy-12); color:var(--navy-55); font-weight:700; font-size:13.5px; line-height:1.25}
+.tier b{display:block; font-size:15px}
+.tier.on{border-style:solid; color:var(--navy)}
+.tier.on.t1{border-color:var(--k-core); background:color-mix(in srgb, var(--k-core) 9%, #fff)}
+.tier.on.t2{border-color:var(--k-data); background:color-mix(in srgb, var(--k-data) 9%, #fff)}
+.tier.on.t3{border-color:var(--k-conf); background:color-mix(in srgb, var(--k-conf) 10%, #fff)}
+.io{display:grid; gap:8px}
+.io div{display:flex; gap:12px; align-items:flex-start; background:var(--surface-2); border-radius:14px; padding:10px 14px; font-size:15.5px; line-height:1.4}
+.io i{width:30px; height:30px; border-radius:50%; display:grid; place-items:center; flex:none; background:#fff; border:1px solid var(--line)}
+.io i svg{width:15px; height:15px}
+.io b{font-weight:800}
+.map{background:var(--surface-2); border-radius:22px; padding:8px}
+.map svg{width:100%; height:auto; display:block}
+.map .mn{cursor:pointer}
+.map .mn rect{fill:#fff; stroke:var(--navy-12); stroke-width:1.5; transition:stroke .15s}
+.map .mn:hover rect,.map .mn:focus-visible rect{stroke:var(--red)}
+.map .mn text{font-size:11.5px; font-weight:700; fill:var(--navy)}
+.track{display:flex; align-items:center; gap:0; margin-top:4px}
+.track span{flex:1; text-align:center; padding:8px 6px; font-size:13.5px; font-weight:800; border:1.5px solid var(--navy-12); color:var(--navy-55)}
+.track span:first-child{border-radius:var(--r-pill) 0 0 var(--r-pill)}
+.track span:last-child{border-radius:0 var(--r-pill) var(--r-pill) 0; border-left:0}
+.track span.on{background:var(--navy); color:#fff; border-color:var(--navy)}
+.cd-wide{padding:0 32px 8px}
+.ctrl-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px}
+.ctrl-grid div{display:flex; gap:12px; align-items:flex-start; border:1.5px solid color-mix(in srgb, var(--k-guard) 30%, #fff); background:color-mix(in srgb, var(--k-guard) 6%, #fff); border-radius:16px; padding:12px 14px; font-size:15px; line-height:1.4; font-weight:600}
+.ctrl-grid svg{width:20px; height:20px; stroke:var(--k-guard); flex:none; margin-top:1px}
+.qs{display:grid; gap:8px}
+.qs div{display:flex; gap:12px; align-items:center; background:var(--red-soft); border-radius:16px; padding:10px 14px; font-size:15.5px; font-weight:600; line-height:1.35}
+.qs i{width:28px; height:28px; border-radius:50%; background:var(--red); color:#fff; font-style:normal; font-weight:800; display:grid; place-items:center; flex:none}
+.dpill{display:inline-block; background:var(--navy); color:#fff; border-radius:var(--r-pill); padding:1px 9px; font-size:12.5px; font-weight:800; margin-left:4px}
+.cd-foot{display:flex; align-items:center; gap:10px; padding:20px 32px 28px; border-top:1px solid var(--line); margin-top:22px; flex-wrap:wrap}
+.cd-foot .sp{flex:1}
+.cd-foot .pos{font-size:14px; font-weight:700; color:var(--navy-55)}
+
+/* phase card */
+.ph-num{width:84px; height:84px; border-radius:50%; background:var(--red); color:#fff; display:grid; place-items:center; font-size:38px; font-weight:800; flex:none; box-shadow:0 0 0 8px var(--red-soft)}
+.outputs{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px}
+.outputs div{display:flex; gap:10px; align-items:flex-start; background:var(--surface-2); border-radius:16px; padding:12px 14px; font-weight:700; font-size:15.5px; line-height:1.35}
+.outputs svg{width:20px; height:20px; stroke:var(--red); flex:none}
+.gatebox{background:var(--navy); color:#fff; border-radius:22px; padding:20px 22px}
+.gatebox .gt{display:flex; gap:12px; align-items:center; font-size:20px; font-weight:800; line-height:1.2}
+.gatebox .gt i{width:40px; height:40px; border-radius:12px; background:var(--red); display:grid; place-items:center; flex:none}
+.gatebox .gt svg{width:20px; height:20px; stroke:#fff}
+.gatebox ul{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:8px}
+.gatebox li{display:flex; gap:10px; align-items:flex-start; font-size:15.5px; font-weight:600; color:rgba(255,255,255,.92); line-height:1.4}
+.gatebox li svg{width:18px; height:18px; stroke:#7ee2a8; flex:none; margin-top:2px}
+.gatebox .note{font-size:13px; color:rgba(255,255,255,.6); margin-top:12px}
+
+/* flow dialog */
+.fl-hero{position:relative; padding:26px 32px 18px; border-bottom:1px solid var(--line); background:linear-gradient(120deg, var(--pale) 0%, #fff 70%)}
+.fl-hero h3{font-size:clamp(24px,3vw,32px); padding-right:60px}
+.fl-hero p{margin-top:6px; color:var(--navy-77); font-size:17px}
+.fl-body{padding:12px 24px 26px; display:grid; gap:14px}
+.note-box{border-radius:18px; padding:14px 18px; background:var(--surface-2); border-left:5px solid var(--red); min-height:60px; font-size:16px}
+.note-box b{display:block; margin-bottom:2px; font-size:17px}
+.steps{margin:0; padding-left:1.4rem; columns:2 330px; column-gap:30px}
+.steps li{break-inside:avoid; margin:.2rem 0 .6rem; font-size:15.5px}
+.steps button{all:unset; cursor:pointer; font-weight:800; color:var(--navy)}
+.steps button:hover,.steps button:focus-visible{color:var(--red)}
+.steps span{color:var(--navy-77)}
+
+/* ---------- Reference grids ---------- */
+.hostgrid{display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:16px}
+@media (max-width:980px){ .hostgrid{grid-template-columns:1fr} }
+.hostcol{padding:22px}
+.hostcol.cloud{background:var(--navy); color:#fff; border:0}
+.hostcol h3{font-size:20px; display:flex; align-items:center; gap:10px; margin-bottom:14px}
+.hostcol h3 img{width:26px; height:26px; border-radius:7px; background:#fff; padding:3px}
+.hostitems{display:grid; gap:8px}
+.hostcol.cloud .hostitems{grid-template-columns:1fr 1fr}
+@media (max-width:520px){ .hostcol.cloud .hostitems{grid-template-columns:1fr} }
+.hitem{display:flex; align-items:center; gap:10px; border-radius:14px; padding:9px 12px; background:var(--surface-2); border:0; color:var(--navy); text-align:left; cursor:pointer; font-weight:700; font-size:15px}
+.hostcol.cloud .hitem{background:rgba(255,255,255,.08); color:#fff}
+.hitem:hover{outline:2px solid var(--red)}
+.hitem .ti{width:30px; height:30px; border-radius:9px; background:#fff; display:grid; place-items:center; flex:none; border:1px solid var(--line)}
+.hitem .ti img{width:22px; height:22px; object-fit:contain; border-radius:4px}
+.hitem .ti svg{width:17px; height:17px}
+
+.comp-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px}
+.ctile{position:relative; text-align:left; background:#fff; border:1px solid var(--line); border-radius:22px; padding:18px 18px 16px; cursor:pointer; box-shadow:var(--shadow-card); transition:transform var(--tr), box-shadow var(--tr); color:var(--navy); overflow:hidden}
+.ctile::before{content:""; position:absolute; left:0; top:0; right:0; height:5px; background:var(--kc)}
+.ctile:hover{transform:translateY(-3px); box-shadow:var(--shadow-deep)}
+.ctile .top{display:flex; gap:12px; align-items:center}
+.ctile .ti{width:46px; height:46px; border-radius:14px; display:grid; place-items:center; flex:none; background:color-mix(in srgb, var(--kc) 12%, #fff)}
+.ctile .ti img{width:32px; height:32px; object-fit:contain; border-radius:6px}
+.ctile .ti svg{width:22px; height:22px}
+.ctile h3{font-size:18px}
+.ctile .s{font-size:14px; color:var(--navy-55); font-weight:600}
+.ctile p{font-size:14.5px; color:var(--navy-77); margin-top:10px; line-height:1.45; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+.ctile .meta{display:flex; gap:6px; flex-wrap:wrap; margin-top:12px}
+.mini{font-size:12px; font-weight:800; border-radius:var(--r-pill); padding:2px 9px; background:var(--surface-2); color:var(--navy-77)}
+.mini.cloud{background:var(--navy); color:#fff}
+.tdots{display:inline-flex; gap:3px; align-items:center; margin-left:auto}
+.tdots i{width:9px; height:9px; border-radius:50%; background:var(--pale-deep)}
+.tdots i.t1{background:var(--k-core)} .tdots i.t2{background:var(--k-data)} .tdots i.t3{background:var(--k-conf)}
+
+.flowbtns{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px}
+.flowbtn{text-align:left; border:1px solid var(--line); background:#fff; color:var(--navy); border-radius:22px; padding:18px 20px; cursor:pointer; box-shadow:var(--shadow-card); transition:transform var(--tr), box-shadow var(--tr); display:flex; gap:14px; align-items:flex-start}
+.flowbtn:hover{transform:translateY(-3px); box-shadow:var(--shadow-deep)}
+.flowbtn .n{width:36px; height:36px; border-radius:50%; background:var(--pale); display:grid; place-items:center; font-weight:800; flex:none}
+.flowbtn b{display:block; font-size:17px}
+.flowbtn span{color:var(--navy-77); font-size:14.5px; line-height:1.4; display:block; margin-top:2px}
+
+.tablewrap{overflow-x:auto; background:#fff; border-radius:22px; border:1px solid var(--line); box-shadow:var(--shadow-card)}
+table{border-collapse:collapse; width:100%; font-size:15px; min-width:680px}
+th,td{text-align:left; vertical-align:top; padding:12px 16px; border-bottom:1px solid var(--line)}
+th{background:var(--pale); font-size:12.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--navy); font-weight:800}
+tr:last-child td{border-bottom:0}
+.tbd{color:var(--red); font-weight:800} .no{color:var(--navy-55)}
+.badge{display:inline-block; border-radius:8px; padding:1px 8px; font-size:12.5px; font-weight:800; border:1.5px solid currentColor}
+.t1c{color:var(--k-core)} .t2c{color:var(--k-data)} .t3c{color:var(--k-conf)} .t4c{color:var(--navy-55)}
+
+/* ---------- Execution plan ---------- */
+.gantt{padding:22px 22px 18px}
+.gwrap{overflow-x:auto}
+.gin{min-width:820px}
+.grow{display:grid; grid-template-columns:230px 1fr; align-items:center; min-height:52px}
+.grow .gl{font-weight:800; font-size:15.5px; padding-right:14px; line-height:1.2}
+.grow .gl small{display:block; font-weight:600; color:var(--navy-55); font-size:13px}
+.grow.ws .gl{font-weight:700; color:var(--navy-77); font-size:14.5px}
+.gtrack{position:relative; height:52px; background-image:linear-gradient(to right, var(--line) 1px, transparent 1px); background-size:calc(100% / 17) 100%}
+.ghead .gtrack{height:34px; background:none; margin-top:16px}
+.gmonth{position:absolute; top:6px; font-size:13px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--navy-55); padding-left:6px; border-left:2px solid var(--navy-12); height:24px}
+.gbar{position:absolute; top:11px; height:30px; line-height:30px; border-radius:var(--r-pill); background:var(--navy); color:#fff; border:0; cursor:pointer; font-weight:800; font-size:13px; padding:0 12px; text-align:left; white-space:nowrap; overflow:visible; box-shadow:var(--shadow-card); transition:transform var(--tr)}
+.gbar:hover{transform:translateY(-2px)}
+.gbar.ws{background:var(--pale-deep); color:var(--navy); cursor:default; box-shadow:none; font-weight:700; line-height:30px}
+.gbar.ws:hover{transform:none}
+.gbar.later{background:repeating-linear-gradient(45deg, var(--pale), var(--pale) 6px, var(--pale-deep) 6px, var(--pale-deep) 12px); color:var(--navy); box-shadow:none}
+.gdia{position:absolute; top:18px; width:16px; height:16px; background:var(--red); transform:rotate(45deg); border-radius:3px; box-shadow:0 0 0 3px #fff; pointer-events:none}
+.gdia-t{position:absolute; top:-2px; font-size:11.5px; font-weight:800; color:var(--red); transform:translateX(-50%); pointer-events:none}
+.gtoday{position:absolute; top:0; bottom:0; width:2px; background:var(--red); pointer-events:none}
+.gtoday span{position:absolute; top:-18px; left:6px; font-size:11.5px; font-weight:800; color:var(--red); white-space:nowrap}
+.gholiday{position:absolute; top:0; bottom:0; background:repeating-linear-gradient(135deg, rgba(27,33,61,.05), rgba(27,33,61,.05) 5px, transparent 5px, transparent 10px); pointer-events:none}
+.gsep{height:1px; background:var(--line); margin:8px 0}
+.glegend{display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:12px; font-size:14px; font-weight:600; color:var(--navy-77)}
+.glegend span{display:inline-flex; align-items:center; gap:7px}
+.gates{display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-top:18px}
+@media (max-width:1000px){ .gates{grid-template-columns:repeat(2,1fr)} }
+.gate{position:relative; text-align:left; background:#fff; border:1px solid var(--line); border-radius:22px; padding:18px 16px 16px; cursor:pointer; box-shadow:var(--shadow-card); transition:transform var(--tr), box-shadow var(--tr); color:var(--navy)}
+.gate:hover{transform:translateY(-3px); box-shadow:var(--shadow-deep)}
+.gate .gn{display:flex; align-items:center; gap:10px}
+.gate .gn b{width:36px; height:36px; border-radius:50%; background:var(--red); color:#fff; display:grid; place-items:center; font-weight:800}
+.gate .gn span{font-size:13px; font-weight:800; color:var(--navy-55); letter-spacing:.06em; text-transform:uppercase}
+.gate h3{font-size:17px; margin-top:12px; line-height:1.2}
+.gate p{font-size:14px; color:var(--navy-77); margin-top:8px; line-height:1.35; display:flex; gap:6px}
+.gate p svg{width:16px; height:16px; stroke:var(--red); flex:none; margin-top:2px}
+.callout{display:flex; gap:14px; align-items:flex-start; background:#fff; border:1px solid var(--line); border-left:5px solid var(--red); border-radius:18px; padding:16px 18px; margin-top:18px; box-shadow:var(--shadow-card); font-size:16px}
+.callout svg{width:22px; height:22px; stroke:var(--red); flex:none; margin-top:2px}
+
+.qbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px}
+.qfilters{display:flex; flex-wrap:wrap; gap:8px; margin-right:auto}
+.qf{border:1.5px solid var(--navy-12); background:#fff; color:var(--navy-77); border-radius:var(--r-pill); padding:7px 14px; font-weight:700; font-size:14px; cursor:pointer; display:inline-flex; align-items:center; gap:7px}
+.qf b{font-size:12px; background:var(--pale); color:var(--navy); border-radius:var(--r-pill); padding:0 7px}
+.qf[aria-pressed="true"]{background:var(--navy); color:#fff; border-color:var(--navy)}
+.qf[aria-pressed="true"] b{background:var(--red); color:#fff}
+.qstats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px}
+@media (max-width:760px){ .qstats{grid-template-columns:repeat(2,1fr)} }
+.qstat{background:#fff; border:1px solid var(--line); border-radius:20px; padding:14px 18px; box-shadow:var(--shadow-card)}
+.qstat b{display:block; font-size:30px; font-weight:800; line-height:1.05}
+.qstat span{font-size:13.5px; font-weight:700; color:var(--navy-55)}
+.qstat .bar{height:6px; border-radius:6px; background:var(--pale); margin-top:8px; overflow:hidden}
+.qstat .bar i{display:block; height:100%; background:var(--k-guard); border-radius:6px; transition:width var(--tr)}
+.qgroups{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr)); gap:16px}
+.qgroup{background:#fff; border:1px solid var(--line); border-radius:24px; box-shadow:var(--shadow-card); overflow:hidden}
+.qgroup header{display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line); background:linear-gradient(120deg, var(--pale) 0%, #fff 80%)}
+.qgroup header .ic{width:42px; height:42px; border-radius:13px; background:var(--navy); display:grid; place-items:center; flex:none}
+.qgroup header .ic svg{width:21px; height:21px; stroke:#fff}
+.qgroup header h3{font-size:19px}
+.qgroup header small{display:block; font-size:13px; font-weight:700; color:var(--navy-55)}
+.qgroup header .cnt{margin-left:auto; font-size:13px; font-weight:800; color:var(--navy-55); white-space:nowrap}
+.qitem{display:grid; grid-template-columns:auto 1fr; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line)}
+.qitem:last-child{border-bottom:0}
+.qitem input{width:20px; height:20px; margin-top:3px; accent-color:var(--k-guard); cursor:pointer}
+.qitem .qq{font-weight:700; font-size:16px; line-height:1.4}
+.qitem .qq .n{color:var(--navy-55); font-weight:800; margin-right:6px}
+.qitem .why{font-size:14.5px; color:var(--navy-77); margin-top:3px; line-height:1.4}
+.qitem .qm{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+.qtag{display:inline-flex; align-items:center; gap:5px; border-radius:var(--r-pill); padding:2px 10px; font-size:12.5px; font-weight:800; border:1.5px solid var(--navy-12); background:#fff; color:var(--navy); cursor:pointer}
+.qtag:hover{border-color:var(--red); color:var(--red)}
+.qtag.blk{background:var(--red); border-color:var(--red); color:#fff}
+.qtag.blk:hover{color:#fff; filter:brightness(1.1)}
+.qtag img{width:14px; height:14px; border-radius:3px}
+.qtag svg{width:13px; height:13px}
+.qitem.done .qq,.qitem.done .why{color:var(--navy-55); text-decoration:line-through; text-decoration-color:rgba(27,33,61,.3)}
+.qitem.hide{display:none}
+.qgroup.hide{display:none}
+.sources{display:grid; gap:6px; padding-left:1.1rem; font-size:15.5px}
+footer{margin-top:90px; background:var(--navy); color:#fff}
+.foot-in{max-width:var(--container); margin:0 auto; padding:34px 24px; display:flex; flex-wrap:wrap; align-items:center; gap:18px 30px}
+.foot-in img{height:36px}
+.foot-in .t{font-size:15px; color:rgba(255,255,255,.8)}
+.foot-in .t b{color:#fff}
+.foot-in .r{margin-left:auto; font-size:13.5px; color:rgba(255,255,255,.6); max-width:46ch}
+
+@media print{ .nav,.toolbar,.hint,dialog{display:none!important} body{background:#fff} .svgwrap svg{min-width:0} section{break-inside:avoid-page} }
+</style>
+</head>
+<body>
+
+<canvas class="net-bg" id="netBg" aria-hidden="true"></canvas>
+<header class="nav">
+  <div class="nav-in">
+    <a href="#top" aria-label="AM Consulting — top of page"><img class="nav-logo" src="https://cdn.jsdelivr.net/gh/am-consultingai/am-assets@v2/logo/am-logo-600.png" alt="AM Consulting" id="navLogo"></a>
+    <span class="nav-client"><span>Prepared for</span><img src="data:image/svg+xml;base64,PHN2ZyBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIiBvdmVyZmxvdz0idmlzaWJsZSIgc3R5bGU9ImRpc3BsYXk6IGJsb2NrOyIgd2lkdGg9IjE1MyIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDE1MyAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgaWQ9IkNMQlQtbG9nbyI+CjxwYXRoIGlkPSJWZWN0b3IiIGQ9Ik0yNS40NDg0IDIwLjAwOThDMjYuNDU5OSAyMC4wMDk4IDI3LjI3OTggMTkuMTkzIDI3LjI3OTggMTguMTg1NEMyNy4yNzk4IDE3LjE3NzggMjYuNDU5OSAxNi4zNjEgMjUuNDQ4NCAxNi4zNjFDMjQuNDM3IDE2LjM2MSAyMy42MTcgMTcuMTc3OCAyMy42MTcgMTguMTg1NEMyMy42MTcgMTkuMTkzIDI0LjQzNyAyMC4wMDk4IDI1LjQ0ODQgMjAuMDA5OFoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGlkPSJWZWN0b3JfMiIgZD0iTTEzLjk4NTcgMzJDMTUuNjMwMyAzMiAxNi45NjM0IDMwLjY3MTkgMTYuOTYzNCAyOS4wMzM2QzE2Ljk2MzQgMjcuMzk1NCAxNS42MzAzIDI2LjA2NzMgMTMuOTg1NyAyNi4wNjczQzEyLjM0MTIgMjYuMDY3MyAxMS4wMDgxIDI3LjM5NTQgMTEuMDA4MSAyOS4wMzM2QzExLjAwODEgMzAuNjcxOSAxMi4zNDEyIDMyIDEzLjk4NTcgMzJaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBpZD0iVmVjdG9yXzMiIGQ9Ik0yLjk3NzY1IDIwLjY5MjRDNC42MjIxNyAyMC42OTI0IDUuOTU1MzEgMTkuMzY0MyA1Ljk1NTMxIDE3LjcyNkM1Ljk1NTMxIDE2LjA4NzcgNC42MjIxNyAxNC43NTk2IDIuOTc3NjUgMTQuNzU5NkMxLjMzMzE0IDE0Ljc1OTYgMCAxNi4wODc3IDAgMTcuNzI2QzAgMTkuMzY0MyAxLjMzMzE0IDIwLjY5MjQgMi45Nzc2NSAyMC42OTI0WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl80IiBkPSJNMTMuODM0MiA4LjQ1MjgzQzE0Ljg4OTMgOC40NTI4MyAxNS43NDQ3IDcuNjAwNzQgMTUuNzQ0NyA2LjU0OTYzQzE1Ljc0NDcgNS40OTg1MiAxNC44ODkzIDQuNjQ2NDMgMTMuODM0MiA0LjY0NjQzQzEyLjc3OTEgNC42NDY0MyAxMS45MjM4IDUuNDk4NTIgMTEuOTIzOCA2LjU0OTYzQzExLjkyMzggNy42MDA3NCAxMi43NzkxIDguNDUyODMgMTMuODM0MiA4LjQ1MjgzWiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl81IiBkPSJNMjIuMTY3NyAxMS40OTc5QzIzLjA5NTUgMTEuNDk3OSAyMy44NDc2IDEwLjc0ODcgMjMuODQ3NiA5LjgyNDQ0QzIzLjg0NzYgOC45MDAxOSAyMy4wOTU1IDguMTUwOTQgMjIuMTY3NyA4LjE1MDk0QzIxLjIzOTkgOC4xNTA5NCAyMC40ODc4IDguOTAwMTkgMjAuNDg3OCA5LjgyNDQ0QzIwLjQ4NzggMTAuNzQ4NyAyMS4yMzk5IDExLjQ5NzkgMjIuMTY3NyAxMS40OTc5WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl82IiBkPSJNNS43ODQwMyAxMi41OTM5QzcuMTIyOTIgMTIuNTkzOSA4LjIwODMxIDExLjUxMjcgOC4yMDgzMSAxMC4xNzg4QzguMjA4MzEgOC44NDUwMiA3LjEyMjkyIDcuNzYzNzQgNS43ODQwMyA3Ljc2Mzc0QzQuNDQ1MTMgNy43NjM3NCAzLjM1OTc1IDguODQ1MDIgMy4zNTk3NSAxMC4xNzg4QzMuMzU5NzUgMTEuNTEyNyA0LjQ0NTEzIDEyLjU5MzkgNS43ODQwMyAxMi41OTM5WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl83IiBkPSJNNi4xNTI5NCAyOC44Njk2QzcuOTAyOTYgMjguODY5NiA5LjMyMTY0IDI3LjQ1NjMgOS4zMjE2NCAyNS43MTI5QzkuMzIxNjQgMjMuOTY5NSA3LjkwMjk2IDIyLjU1NjIgNi4xNTI5NCAyMi41NTYyQzQuNDAyOTEgMjIuNTU2MiAyLjk4NDI0IDIzLjk2OTUgMi45ODQyNCAyNS43MTI5QzIuOTg0MjQgMjcuNDU2MyA0LjQwMjkxIDI4Ljg2OTYgNi4xNTI5NCAyOC44Njk2WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl84IiBkPSJNMjEuNyAyOC41ODA4QzIzLjAzODkgMjguNTgwOCAyNC4xMjQzIDI3LjQ5OTUgMjQuMTI0MyAyNi4xNjU3QzI0LjEyNDMgMjQuODMxOSAyMy4wMzg5IDIzLjc1MDYgMjEuNyAyMy43NTA2QzIwLjM2MTEgMjMuNzUwNiAxOS4yNzU3IDI0LjgzMTkgMTkuMjc1NyAyNi4xNjU3QzE5LjI3NTcgMjcuNDk5NSAyMC4zNjExIDI4LjU4MDggMjEuNyAyOC41ODA4WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl85IiBkPSJNMzEuMjI1OCAwTDMyLjU2OTcgMy4zODYzOEwzNS45NjkgNC43MjUxOEwzMi41Njk3IDYuMDYzOTlMMzEuMjI1OCA5LjQ1NjkzTDI5Ljg4MTkgNi4wNjM5OUwyNi40NzYxIDQuNzI1MThMMjkuODgxOSAzLjM4NjM4TDMxLjIyNTggMFoiIGZpbGw9IiNGRjVBMUYiLz4KPHBhdGggaWQ9IlZlY3Rvcl8xMCIgZD0iTTQ3LjMxOTcgMjguNTc0MkM0NS4xMDYyIDI4LjU3NDIgNDMuMjk0NiAyNy43ODY3IDQxLjg3ODIgMjYuMzY5MkMzOS44MzYgMjQuMzM0NyAzOS44OTUzIDIyLjI0MTIgMzkuODk1MyAxOC43Njk1QzM5Ljg5NTMgMTUuMjk3OCAzOS44MzYgMTIuOTk0MyA0MS44NzgyIDEwLjk1OThDNDMuMjk0NiA5LjU0ODgxIDQ1LjEwNjIgOC43NTQ3MSA0Ny4zMTk3IDguNzU0NzFDNTEuMDg3OCA4Ljc1NDcxIDU0LjAzMjUgMTAuOTAwNyA1NC43NDQgMTUuMTA3NUg1MC43NTE5QzUwLjM1NjYgMTMuNDk5NiA0OS4zMzU1IDEyLjI1OTIgNDcuMzUyNiAxMi4yNTkyQzQ2LjI3ODggMTIuMjU5MiA0NS4zOTYgMTIuNjUzIDQ0LjgyOTUgMTMuMzAyN0M0NC4wNjUzIDE0LjE0OTMgNDMuODM0NyAxNC45MDQgNDMuODM0NyAxOC43Njk1QzQzLjgzNDcgMjIuNjM0OSA0NC4wNTg3IDIzLjE3OTcgNDQuODI5NSAyNC4wMjYyQzQ1LjM5NiAyNC42NzYgNDYuMjcyMiAyNS4wNjk3IDQ3LjM1MjYgMjUuMDY5N0M0OS4zMzU1IDI1LjA2OTcgNTAuMzU2NiAyMy44Mjk0IDUwLjc1MTkgMjIuMjIxNUg1NC43NDRDNTQuMDM5MSAyNi40MjgyIDUxLjA2MTUgMjguNTc0MiA0Ny4zMTk3IDI4LjU3NDJaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBpZD0iVmVjdG9yXzExIiBkPSJNMTEwLjM5NyAyNy4yNDg2QzEwOS41NzQgMjguMDY4OSAxMDguMjQzIDI4LjU3NDIgMTA2LjggMjguNTc0MkMxMDUuMjM5IDI4LjU3NDIgMTA0LjEzOSAyOC4xNDc3IDEwMy4xMTggMjcuMDE4OVYyOC40MDM2SDk5LjU0NzJWOS4xMzUzNUgxMDMuMjNWMTQuOTk1OUMxMDQuMTkyIDEzLjkyNjIgMTA1LjI5OCAxMy41MjU4IDEwNi44IDEzLjUyNThDMTA4LjMwMiAxMy41MjU4IDEwOS41NzQgMTQuMDMxMiAxMTAuMzk3IDE0Ljg1MTVDMTExLjg3MyAxNi4zMjE2IDExMS44OTkgMTguODI4NSAxMTEuODk5IDIxLjAzMzZDMTExLjg5OSAyMy4yMzg3IDExMS44NzMgMjUuNzc4NSAxMTAuMzk3IDI3LjI0MlYyNy4yNDg2Wk0xMDUuNzIgMTYuODMzNUMxMDMuNTA2IDE2LjgzMzUgMTAzLjIyMyAxOC42MzgyIDEwMy4yMjMgMjEuMDQwMkMxMDMuMjIzIDIzLjQ0MjIgMTAzLjUwNiAyNS4yNzMyIDEwNS43MiAyNS4yNzMyQzEwNy45MzMgMjUuMjczMiAxMDguMjE3IDIzLjQzNTYgMTA4LjIxNyAyMS4wNDAyQzEwOC4yMTcgMTguNjQ0OCAxMDcuOTMzIDE2LjgzMzUgMTA1LjcyIDE2LjgzMzVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBpZD0iVmVjdG9yXzEyIiBkPSJNMTI0LjU0MSAxMi40Mjk5VjkuMDIzNzlIMTI4LjMwOVYxMi40Mjk5SDEyNC41NDFaTTEyNC42IDI4LjQwMzZWMTMuNjk2NUgxMjguMjgzVjI4LjQwMzZIMTI0LjZaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBpZD0iVmVjdG9yXzEzIiBkPSJNMTM2LjMgMjguNDAzNkMxMzMuMjk2IDI4LjQwMzYgMTMyLjAxOCAyNi4yODM4IDEzMi4wMTggMjQuMTk2OVYxNi41MTE5SDEzMC40NTdWMTMuNzE2MkgxMzIuMDE4VjkuMDIzNzlIMTM1LjcwMVYxMy43MTYySDEzOC4zMDlWMTYuNTExOUgxMzUuNzAxVjIzLjk3MzdDMTM1LjcwMSAyNC44MjAzIDEzNi4wOTYgMjUuMjk5NCAxMzYuOTc5IDI1LjI5OTRIMTM4LjMwOVYyOC40MDM2SDEzNi4zWiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl8xNCIgZD0iTTY3LjM2NjEgMjIuMTk1Mkg2OS4yNTAyQzY5LjI3IDIxLjgyNzcgNjkuMjgzMSAyMS40NDcxIDY5LjI4MzEgMjEuMDQwMkM2OS4yODMxIDE4LjM4ODggNjguOTM0IDE2LjcyMTkgNjcuNTYzNyAxNS4zMzcyQzY2LjYyODMgMTQuMzc5IDY1LjA4MDIgMTMuNTMyNCA2Mi44MzM4IDEzLjUzMjRDNjAuNTg3MyAxMy41MzI0IDU5LjA3MjIgMTQuMzc5IDU4LjEzNjcgMTUuMzM3MkM1Ni43NjY1IDE2LjcyMTkgNTYuNDE3MyAxOC4zODIzIDU2LjQxNzMgMjEuMDQwMkM1Ni40MTczIDIzLjY5ODEgNTYuNzY2NSAyNS4zODQ3IDU4LjEzNjcgMjYuNzY5NUM1OS4wNzIyIDI3LjcyNzcgNjAuNTg3MyAyOC41NzQyIDYyLjgzMzggMjguNTc0MkM2NS4wODAyIDI4LjU3NDIgNjYuNjI4MyAyNy43Mjc3IDY3LjU2MzcgMjYuNzY5NUM2OC4yOTUgMjYuMDM0NSA2OC43Mjk4IDI1LjIwNzYgNjguOTgwMSAyNC4xOTY5SDY1LjI1MTVDNjUuMTI2MyAyNC40MiA2NC45ODE0IDI0LjYyMzUgNjQuNzk2OSAyNC44MDA3QzY0LjMxNiAyNS4yNDY5IDYzLjY3NyAyNS40ODMyIDYyLjg0MDMgMjUuNDgzMkM2Mi4wMDM3IDI1LjQ4MzIgNjEuMzk3NiAyNS4yNDY5IDYwLjkxNjcgMjQuODAwN0M2MC4yNzExIDI0LjIwMzUgNjAuMDUzNyAyMy4yOTEyIDU5Ljk4MTMgMjIuMTk1Mkg2Ny4zNzkzSDY3LjM2NjFaTTYyLjgzMzggMTYuNjIzNUM2My42NzA0IDE2LjYyMzUgNjQuMzA5NCAxNi44NTk3IDY0Ljc5MDMgMTcuMzA2QzY1LjM5NjQgMTcuODYzOCA2NS42MjcgMTguNjk3MyA2NS43MDYgMTkuNjg4M0g1OS45ODc5QzYwLjA3MzUgMTguNjk3MyA2MC4yOTc1IDE3Ljg3MDQgNjAuOTAzNiAxNy4zMDZDNjEuMzg0NSAxNi44NTk3IDYxLjk5NzEgMTYuNjIzNSA2Mi44MjcyIDE2LjYyMzVINjIuODMzOFoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGlkPSJWZWN0b3JfMTUiIGQ9Ik05NS4zNTc0IDIyLjE5NTJIOTcuMjQxNUM5Ny4yNjEyIDIxLjgyNzcgOTcuMjc0NCAyMS40NDcxIDk3LjI3NDQgMjEuMDQwMkM5Ny4yNzQ0IDE4LjM4ODggOTYuOTI1MyAxNi43MjE5IDk1LjU1NSAxNS4zMzcyQzk0LjYxOTUgMTQuMzc5IDkzLjA3MTQgMTMuNTMyNCA5MC44MjUgMTMuNTMyNEM4OC41Nzg2IDEzLjUzMjQgODcuMDYzNCAxNC4zNzkgODYuMTI4IDE1LjMzNzJDODQuNzU3NyAxNi43MjE5IDg0LjQwODYgMTguMzgyMyA4NC40MDg2IDIxLjA0MDJDODQuNDA4NiAyMy42OTgxIDg0Ljc1NzcgMjUuMzg0NyA4Ni4xMjggMjYuNzY5NUM4Ny4wNjM0IDI3LjcyNzcgODguNTc4NiAyOC41NzQyIDkwLjgyNSAyOC41NzQyQzkzLjA3MTQgMjguNTc0MiA5NC42MTk1IDI3LjcyNzcgOTUuNTU1IDI2Ljc2OTVDOTYuMjg2MiAyNi4wMzQ1IDk2LjcyMSAyNS4yMDc2IDk2Ljk3MTQgMjQuMTk2OUg5My4yNDI3QzkzLjExNzUgMjQuNDIgOTIuOTcyNiAyNC42MjM1IDkyLjc4ODIgMjQuODAwN0M5Mi4zMDczIDI1LjI0NjkgOTEuNjY4MiAyNS40ODMyIDkwLjgzMTYgMjUuNDgzMkM4OS45OTUgMjUuNDgzMiA4OS4zODg5IDI1LjI0NjkgODguOTA4IDI0LjgwMDdDODguMjYyNCAyNC4yMDM1IDg4LjA0NSAyMy4yOTEyIDg3Ljk3MjUgMjIuMTk1Mkg5NS4zNzA2SDk1LjM1NzRaTTkwLjgyNSAxNi42MjM1QzkxLjY2MTcgMTYuNjIzNSA5Mi4zMDA3IDE2Ljg1OTcgOTIuNzgxNiAxNy4zMDZDOTMuMzg3NiAxNy44NjM4IDkzLjYxODIgMTguNjk3MyA5My42OTczIDE5LjY4ODNIODcuOTc5MUM4OC4wNjQ4IDE4LjY5NzMgODguMjg4NyAxNy44NzA0IDg4Ljg5NDggMTcuMzA2Qzg5LjM3NTcgMTYuODU5NyA4OS45ODg0IDE2LjYyMzUgOTAuODE4NCAxNi42MjM1SDkwLjgyNVoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGlkPSJWZWN0b3JfMTYiIGQ9Ik0xNTEuMDgzIDIyLjE5NTJIMTUyLjk2N0MxNTIuOTg3IDIxLjgyNzcgMTUzIDIxLjQ0NzEgMTUzIDIxLjA0MDJDMTUzIDE4LjM4ODggMTUyLjY1MSAxNi43MjE5IDE1MS4yODEgMTUuMzM3MkMxNTAuMzQ1IDE0LjM3OSAxNDguNzk3IDEzLjUzMjQgMTQ2LjU1MSAxMy41MzI0QzE0NC4zMDQgMTMuNTMyNCAxNDIuNzg5IDE0LjM3OSAxNDEuODU0IDE1LjMzNzJDMTQwLjQ4MyAxNi43MjE5IDE0MC4xMzQgMTguMzgyMyAxNDAuMTM0IDIxLjA0MDJDMTQwLjEzNCAyMy42OTgxIDE0MC40ODMgMjUuMzg0NyAxNDEuODU0IDI2Ljc2OTVDMTQyLjc4OSAyNy43Mjc3IDE0NC4zMDQgMjguNTc0MiAxNDYuNTUxIDI4LjU3NDJDMTQ4Ljc5NyAyOC41NzQyIDE1MC4zNDUgMjcuNzI3NyAxNTEuMjgxIDI2Ljc2OTVDMTUyLjAxMiAyNi4wMzQ1IDE1Mi40NDcgMjUuMjA3NiAxNTIuNjk3IDI0LjE5NjlIMTQ4Ljk2OEMxNDguODQzIDI0LjQyIDE0OC42OTggMjQuNjIzNSAxNDguNTE0IDI0LjgwMDdDMTQ4LjAzMyAyNS4yNDY5IDE0Ny4zOTQgMjUuNDgzMiAxNDYuNTU3IDI1LjQ4MzJDMTQ1LjcyMSAyNS40ODMyIDE0NS4xMTQgMjUuMjQ2OSAxNDQuNjM0IDI0LjgwMDdDMTQzLjk4OCAyNC4yMDM1IDE0My43NzEgMjMuMjkxMiAxNDMuNjk4IDIyLjE5NTJIMTUxLjA5NkgxNTEuMDgzWk0xNDYuNTQ0IDE2LjYyMzVDMTQ3LjM4MSAxNi42MjM1IDE0OC4wMiAxNi44NTk3IDE0OC41MDEgMTcuMzA2QzE0OS4xMDcgMTcuODYzOCAxNDkuMzM3IDE4LjY5NzMgMTQ5LjQxNiAxOS42ODgzSDE0My42OThDMTQzLjc4NCAxOC42OTczIDE0NC4wMDggMTcuODcwNCAxNDQuNjE0IDE3LjMwNkMxNDUuMDk1IDE2Ljg1OTcgMTQ1LjcwNyAxNi42MjM1IDE0Ni41MzcgMTYuNjIzNUgxNDYuNTQ0WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl8xNyIgZD0iTTc1LjMwNDMgOS4xMzUzNUg3MS42MjE4VjI4LjQwMzZINzUuMzA0M1Y5LjEzNTM1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl8xOCIgZD0iTTgyLjEzNTggOS4xMzUzNUg3OC40NTMzVjI4LjQwMzZIODIuMTM1OFY5LjEzNTM1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggaWQ9IlZlY3Rvcl8xOSIgZD0iTTEyMi41NDUgMTMuMzM1NUMxMjIuNTQ1IDEzLjMzNTUgMTIyLjUxOSAxMy4zMzU1IDEyMi40OTkgMTMuMzM1NUMxMjEuMzIgMTMuMzM1NSAxMjAuMzU4IDEzLjY0NCAxMTkuNjIgMTQuMjYwOUMxMTkuMTY1IDE0LjYyODQgMTE4LjYzOCAxNS4zMTA5IDExOC4wMjYgMTYuMzE1VjEzLjY5NjVIMTE0LjI2NFYyOC40MTAySDExOC4yMzdWMjEuMjMwNUMxMTguMjM3IDIwLjAyOTUgMTE4LjM4OCAxOS40NDU1IDExOC42OTEgMTguODY3OUMxMTkuMjM4IDE3LjgzNzYgMTIwLjI5OSAxNy4zMjU3IDEyMS44ODYgMTcuMzI1N0MxMjIuMDA1IDE3LjMyNTcgMTIyLjE2MyAxNy4zMjU3IDEyMi4zNTQgMTcuMzM4OEMxMjIuNDA3IDE3LjMzODggMTIyLjQ3OSAxNy4zNTE5IDEyMi41MzggMTcuMzUxOVYxMy4zNDIxTDEyMi41NDUgMTMuMzM1NVoiIGZpbGw9ImJsYWNrIi8+CjwvZz4KPC9zdmc+Cg==" alt="Cellebrite" width="122" height="26"></span>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#overview">Overview</a>
+      <a href="#diagram">Architecture</a>
+      <a href="#hosting">Hosting</a>
+      <a href="#components">Components</a>
+      <a href="#flows">Flows</a>
+      <a href="#data">Data &amp; access</a>
+      <a href="#decisions">Decisions</a>
+      <a href="#questions">Questions</a>
+    </nav>
+    <a class="pill-btn sm" href="#plan"><span class="dot" data-icon="calendar"></span>Execution plan</a>
+  </div>
+</header>
+
+<main id="top">
+<!-- ================= HERO ================= -->
+<section class="hero" id="overview" style="padding-top:64px">
+    <div class="container">
+    <div class="hero-grid">
+      <div>
+        <span class="tagline"><img id="clbMark" alt="">Architecture brief · Cellebrite HR</span>
+        <h1>One goals system for 1,200 people, built <span class="red">in-house, safely.</span></h1>
+        <p class="lede">Vision, Methods and Targets for every employee. Transparent by default, confidential where it matters.</p>
+        <div class="cta">
+          <a class="pill-btn" href="#diagram"><span class="dot" data-icon="layers"></span>Explore the architecture</a>
+          <a class="pill-btn ghost" href="#plan"><span class="dot" data-icon="flag"></span>See the execution plan</a>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>1,200</b><span>employees</span></div>
+          <div class="stat"><b>3<small>×</small></b><span>check-ins / year</span></div>
+          <div class="stat"><b>1–5</b><span>annual rating</span></div>
+          <div class="stat"><b>4</b><span>user roles</span></div>
+          <div class="stat"><b>6</b><span>go / no-go gates</span></div>
+          <div class="stat"><b>Feb</b><span>2027 launch</span></div>
+        </div>
+      </div>
+      <div class="vmt-card" aria-label="The VMT model: one Vision, three to five Methods, measurable Targets, three check-ins a year">
+        <svg viewBox="0 0 460 360" role="img" aria-hidden="true">
+          <defs><linearGradient id="gv" x1="0" x2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#E6ECF6"/></linearGradient></defs>
+          <text x="20" y="22" fill="rgba(255,255,255,.6)" font-size="12" font-weight="800" letter-spacing="2">THE VMT MODEL</text>
+          <path d="M230 86 V112 M230 112 H85 V140 M230 112 V140 M230 112 H375 V140" stroke="rgba(255,255,255,.35)" stroke-width="1.5" fill="none"/>
+          <rect x="95" y="38" width="270" height="48" rx="24" fill="url(#gv)"/>
+          <circle cx="122" cy="62" r="13" fill="#E21313"/><text x="122" y="67" text-anchor="middle" fill="#fff" font-size="14" font-weight="800">V</text>
+          <text x="144" y="58" fill="#1B213D" font-size="16" font-weight="800">Vision</text>
+          <text x="144" y="75" fill="rgba(27,33,61,.6)" font-size="12" font-weight="600">one per manager · visible to all</text>
+          <g font-weight="700">
+            <rect x="20" y="140" width="130" height="44" rx="14" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.3)"/>
+            <rect x="165" y="140" width="130" height="44" rx="14" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.3)"/>
+            <rect x="310" y="140" width="130" height="44" rx="14" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.3)"/>
+            <text x="38" y="167" fill="#fff" font-size="14">M · Method 1</text>
+            <text x="183" y="167" fill="#fff" font-size="14">M · Method 2</text>
+            <text x="328" y="167" fill="#fff" font-size="14">M · Method 3</text>
+          </g>
+          <text x="230" y="206" text-anchor="middle" fill="rgba(255,255,255,.55)" font-size="11.5" font-weight="700">3–5 METHODS PER PERSON · UP TO 4 TARGETS EACH</text>
+          <g id="tg"></g>
+          <line x1="40" y1="318" x2="420" y2="318" stroke="rgba(255,255,255,.3)" stroke-width="2"/>
+          <g font-size="12" font-weight="700" fill="#fff" text-anchor="middle">
+            <circle cx="60" cy="318" r="8" fill="#E21313"/><text x="60" y="342">Goal setting</text>
+            <circle cx="230" cy="318" r="8" fill="#fff"/><text x="230" y="342">Mid-year check-in</text>
+            <circle cx="400" cy="318" r="8" fill="#fff"/><text x="400" y="342">Year-end review</text>
+          </g>
+        </svg>
+        <div class="caption"><i></i>Goals open to everyone · ratings stay private</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:40px">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">01 · Design principles</div><h2 class="sec-h">Eight rules that keep it <span class="red">safe.</span></h2></div>
+    <div class="tiles" id="principles"></div>
+    <div class="ctx">
+      <div class="panel">
+        <h4>Who uses it</h4>
+        <div class="bigline"><b>~1,200</b><span>employees across 10+ countries</span></div>
+        <div class="stack" id="stack"></div>
+        <div class="stack-legend" id="stackLegend"></div>
+      </div>
+      <div class="panel">
+        <h4>Security bar to match</h4>
+        <div class="certs" id="certs"></div>
+      </div>
+      <div class="panel">
+        <h4>Systems in play</h4>
+        <div class="logos" id="sysLogos"></div>
+      </div>
+    </div>
+    <p class="fine">Headcount and certifications come from public sources (see Sources) and should be verified internally.</p>
+  </div>
+</section>
+
+<!-- ================= DIAGRAM ================= -->
+<section id="diagram">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">02 · Architecture</div><h2 class="sec-h">The system at a <span class="red">glance.</span></h2><p class="sec-sub">Click any block to open its card. Hover a block to trace its connections.</p></div>
+    <div class="panel diagram-card">
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="Search: rating, HiBob, export…" aria-label="Search components">
+        <div class="seg" role="group" aria-label="Phase filter">
+          <button type="button" data-phase="all" aria-pressed="true">All</button>
+          <button type="button" data-phase="MVP" aria-pressed="false">MVP</button>
+          <button type="button" data-phase="Post-pilot" aria-pressed="false">Post-pilot</button>
+        </div>
+        <label class="toggle"><input type="checkbox" id="cloudToggle"> Cellebrite cloud only</label>
+        <label class="toggle"><input type="checkbox" id="confToggle"> Confidential path</label>
+        <label class="toggle"><input type="checkbox" id="animToggle"> Animate</label>
+        <button class="ghost-sm" type="button" id="resetBtn">Reset</button>
+      </div>
+      <div class="svgwrap"><svg id="main" viewBox="0 0 1200 760" role="group" aria-label="VMT system architecture diagram"></svg></div>
+      <div class="legend" id="legend"></div>
+      <div class="hint">Link straight to a card with <code>#c/hibob</code>, a flow with <code>#f/rating</code> or a phase with <code>#p/3</code>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOSTING ================= -->
+<section id="hosting">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">03 · Hosting</div><h2 class="sec-h">What runs in <span class="red">Cellebrite's cloud.</span></h2><p class="sec-sub">Everything Cellebrite builds runs in a dedicated corporate IT account, separate from the product and FedRAMP environments. Vendor systems stay in their own SaaS.</p></div>
+    <div class="hostgrid" id="hostGrid"></div>
+  </div>
+</section>
+
+<!-- ================= COMPONENTS ================= -->
+<section id="components">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">04 · Components</div><h2 class="sec-h">Every block, one <span class="red">card.</span></h2><p class="sec-sub">Open a card for its purpose, data, controls, connections and open questions.</p></div>
+    <div class="comp-grid" id="compGrid"></div>
+  </div>
+</section>
+
+<!-- ================= FLOWS ================= -->
+<section id="flows">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">05 · Key flows</div><h2 class="sec-h">How the data <span class="red">moves.</span></h2><p class="sec-sub">Each flow opens as its own clickable diagram with a step-by-step explanation.</p></div>
+    <div class="flowbtns" id="flowBtns"></div>
+  </div>
+</section>
+
+<!-- ================= DATA ================= -->
+<section id="data">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">06 · Data &amp; access</div><h2 class="sec-h">Who sees <span class="red">what.</span></h2></div>
+    <div class="tablewrap" style="margin-bottom:18px"><table>
+      <thead><tr><th>Tier</th><th>Contents</th><th>Default visibility</th><th>Stored in</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge t1c">Tier 1</span> Org-visible</td><td>Visions, Methods, Targets (metric, baseline, target, actual, due date), progress, calculated status</td><td>Everyone, once published</td><td>Main database</td></tr>
+        <tr><td><span class="badge t2c">Tier 2</span> Manager chain</td><td>Status comments, override reasons, check-in notes</td><td>Employee, manager chain, HR (company-wide is D2)</td><td>Main database</td></tr>
+        <tr><td><span class="badge t3c">Tier 3</span> Confidential</td><td>Self-assessment, rating 1–5, values ratings, calibration notes, development goals</td><td>Employee after release, direct manager, HR for that org</td><td>Confidential store (own key)</td></tr>
+        <tr><td><span class="badge t4c">Out of scope</span></td><td>PIPs, salary, disciplinary records</td><td>Not held in VMT</td><td>Existing HR systems</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Viewer</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th><th>Exports</th><th>Audit log</th></tr></thead>
+      <tbody>
+        <tr><td><b>Employee – own record</b></td><td>Read and write until the cycle locks</td><td>Read and write</td><td>Writes self-assessment and development goals. Reads ratings after release</td><td class="no">—</td><td>Own access report on request</td></tr>
+        <tr><td><b>Employee – anyone else</b></td><td>Read</td><td class="tbd">TBD (D2)</td><td class="no">No</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td><b>Direct manager</b></td><td>Read, and override status with a reason</td><td>Read and write</td><td>Writes draft rating. Reads self-assessment after it is submitted</td><td>Own team, Tier 1 only</td><td class="no">—</td></tr>
+        <tr><td><b>Manager chain</b></td><td>Read</td><td>Read</td><td class="tbd">TBD (D6)</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td><b>HR partner</b></td><td>Read</td><td>Read</td><td>Read, and calibrate for the assigned org</td><td>Assigned org</td><td>Assigned org</td></tr>
+        <tr><td><b>Central HR admin</b></td><td>Read</td><td>Read</td><td>Read. Amend after release only with a reason</td><td>Company</td><td>Company</td></tr>
+        <tr><td><b>System admin</b></td><td>Configuration only</td><td class="no">No</td><td>No. Break-glass needs a ticket and alerts InfoSec</td><td class="no">—</td><td>Read</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= INTEGRATIONS ================= -->
+<section id="integrations">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">07 · Integrations</div><h2 class="sec-h">Connected, <span class="red">minimally.</span></h2></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>System</th><th>Purpose</th><th>Direction and data</th><th>Safety rule</th><th>Phase</th></tr></thead>
+      <tbody id="integRows"></tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= DECISIONS ================= -->
+<section id="decisions">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">08 · Open decisions</div><h2 class="sec-h">Thirteen calls to <span class="red">close.</span></h2></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>#</th><th>Decision</th><th>Recommendation</th><th>Owner</th><th>Close at</th></tr></thead>
+      <tbody id="decRows"></tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= EXECUTION PLAN ================= -->
+<section id="plan">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">09 · Execution plan</div><h2 class="sec-h">Six phases, six <span class="red">gates.</span></h2><p class="sec-sub">Follows the phases and gates in the original brief. Click a bar or a gate for its outputs, the components it delivers, the decisions it closes and its exit criteria.</p></div>
+    <div class="panel gantt">
+      <div class="gwrap"><div class="gin" id="gantt"></div></div>
+      <div class="glegend">
+        <span><i class="sw" style="background:var(--navy);border-radius:99px;width:22px"></i>Phase (click to open)</span>
+        <span><i class="sw" style="background:var(--red);transform:rotate(45deg)"></i>Gate / go-no-go</span>
+        <span><i class="sw" style="background:var(--pale-deep);border-radius:99px;width:22px"></i>Continuous workstream</span>
+        <span><i class="sw" style="background:repeating-linear-gradient(135deg, rgba(27,33,61,.15), rgba(27,33,61,.15) 3px, transparent 3px, transparent 6px)"></i>Year-end holidays</span>
+        <span><i class="sw" style="background:var(--red);width:3px;border-radius:0"></i>Today</span>
+      </div>
+    </div>
+    <div class="gates" id="gates"></div>
+    <div class="callout"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-ic="alert"></svg><div><b>Timeline risk.</b> The brief puts discovery and spec in November, development in December, and testing plus a live pilot cycle in January. That's achievable only if the MVP stays limited to Okta, HiBob and Outlook. Slack, Juno, the Talent Management Platform and AI follow in Q2 2027.</div></div>
+  </div>
+</section>
+
+<!-- ================= QUESTIONS ================= -->
+<section id="questions">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">10 · Follow-up questions</div><h2 class="sec-h">What we need from Cellebrite <span class="red">IT &amp; engineering.</span></h2><p class="sec-sub">The technical answers that unblock the next steps. Questions marked <b class="red">Blocks G1</b> must be answered before the discovery gate closes. Tick questions off as they're answered, then copy the open ones to send.</p></div>
+    <div class="qbar">
+      <div class="qfilters" id="qFilters" role="group" aria-label="Filter by team"></div>
+      <label class="toggle"><input type="checkbox" id="qBlockers"> Gate 1 blockers only</label>
+      <label class="toggle"><input type="checkbox" id="qOpen"> Hide answered</label>
+      <button class="pill-btn sm" type="button" id="qCopy"><span class="dot" data-icon="file"></span><span id="qCopyT">Copy open questions</span></button>
+    </div>
+    <div class="qstats" id="qStats"></div>
+    <div class="qgroups" id="qGroups"></div>
+  </div>
+</section>
+
+<!-- ================= RISKS ================= -->
+<section id="risks">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">11 · Risks</div><h2 class="sec-h">What could go <span class="red">wrong.</span></h2></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td><b>A permission bug exposes ratings</b></td><td>Loss of trust, legal exposure</td><td>A single policy module, full matrix tests as a launch gate, a separate confidential store, and SIEM alerts</td></tr>
+        <tr><td><b>Wrong manager data in HiBob</b></td><td>Wrong people see or rate goals</td><td>Validation and an anomaly hold on sync, plus a data clean-up before the pilot</td></tr>
+        <tr><td><b>Very tight timeline</b></td><td>Quality and security shortcuts</td><td>A narrow MVP. Everything else after the pilot</td></tr>
+        <tr><td><b>Resistance to full transparency</b></td><td>Low adoption, gaming of goals</td><td>Visibility badges, private drafts, comments limited to the manager chain</td></tr>
+        <tr><td><b>Multi-country legal constraints</b></td><td>Rollout delays</td><td>Early legal opinion, DPIA, rollout in country waves</td></tr>
+        <tr><td><b>AI drifting into evaluation</b></td><td>Regulatory exposure</td><td>AI limited to drafting, enforced in the AI gateway</td></tr>
+        <tr><td><b>No-code platform holding HR data</b></td><td>Fails InfoSec review</td><td>Base44 for prototypes only. Production in Cellebrite's own cloud account</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= SOURCES ================= -->
+<section id="sources">
+  <div class="container">
+    <div class="sec-head"><div class="eyebrow">12 · Sources</div></div>
+    <ul class="sources">
+      <li>VMT in-house build: decision brief (High-level Design Brief PDF)</li>
+      <li><a href="https://cellebrite.com/en/trust/compliance" rel="noopener">Cellebrite – Compliance (ISO 27001, SOC 2, FedRAMP)</a></li>
+      <li><a href="https://dealroom.co/companies/cellebrite/" rel="noopener">Dealroom – Cellebrite (headcount, country split)</a></li>
+      <li><a href="https://www.reveliolabs.com/companies/cellebrite/employees" rel="noopener">Revelio Labs – Cellebrite employees</a></li>
+      <li><a href="https://clay.com/dossier/cellebrite-headquarters-office-locations" rel="noopener">Clay – Cellebrite office locations</a></li>
+      <li><a href="https://docs.junojourney.com/" rel="noopener">Juno Journey documentation</a></li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="foot-in">
+    <img src="https://cdn.jsdelivr.net/gh/am-consultingai/am-assets@v2/logo/am-logo-white-600.png" alt="AM Consulting">
+    <div class="t"><b>Prepared by AM Consulting</b> · Tech Strategy Made Easy<br>Draft for the Gate 1 discussion · 9 November 2026</div>
+    <div class="r">This is an architecture proposal, not a decided plan. Company facts come from public sources.</div>
+  </div>
+</footer>
+
+<!-- component / phase card -->
+<dialog class="pop" id="cardDlg" aria-labelledby="cardTitle"></dialog>
+<!-- flow -->
+<dialog class="pop" id="flowDlg" aria-labelledby="fTitle">
+  <div class="fl-hero">
+    <div class="eyebrow">Detail flow</div>
+    <h3 id="fTitle" style="margin-top:8px"></h3>
+    <p id="fDesc"></p>
+    <button class="round-btn x-btn" id="fClose" type="button" aria-label="Close flow" data-icon="x"></button>
+  </div>
+  <div class="fl-body">
+    <div class="svgwrap" style="padding:0"><svg id="fSvg" role="group"></svg></div>
+    <div class="note-box" id="fNote" aria-live="polite"><b>Click a step</b>Select any box in the diagram or any step below.</div>
+    <ol class="steps" id="fSteps"></ol>
+  </div>
+</dialog>
+
+<script>
+(function(){
+"use strict";
+const LOGOS = {"hibob": "data:image/png;base64,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", "okta": "data:image/png;base64,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", "outlook": "data:image/png;base64,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", "slack": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI3IiBoZWlnaHQ9IjEyNyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMjcuMiA4MGMwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjJDNi43IDkzLjIuOCA4Ny4zLjggODBjMC03LjMgNS45LTEzLjIgMTMuMi0xMy4yaDEzLjJWODB6bTYuNiAwYzAtNy4zIDUuOS0xMy4yIDEzLjItMTMuMiA3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjJ2MzNjMCA3LjMtNS45IDEzLjItMTMuMiAxMy4yLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMlY4MHoiIGZpbGw9IiNFMDFFNUEiLz4KICA8cGF0aCBkPSJNNDcgMjdjLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMkMzMy44IDYuNSAzOS43LjYgNDcgLjZjNy4zIDAgMTMuMiA1LjkgMTMuMiAxMy4yVjI3SDQ3em0wIDYuN2M3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjIgMCA3LjMtNS45IDEzLjItMTMuMiAxMy4ySDEzLjlDNi42IDYwLjEuNyA1NC4yLjcgNDYuOWMwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjJINDd6IiBmaWxsPSIjMzZDNUYwIi8+CiAgPHBhdGggZD0iTTk5LjkgNDYuOWMwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjIgNy4zIDAgMTMuMiA1LjkgMTMuMiAxMy4yIDAgNy4zLTUuOSAxMy4yLTEzLjIgMTMuMkg5OS45VjQ2Ljl6bS02LjYgMGMwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjItNy4zIDAtMTMuMi01LjktMTMuMi0xMy4yVjEzLjhDNjYuOSA2LjUgNzIuOC42IDgwLjEuNmM3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjJ2MzMuMXoiIGZpbGw9IiMyRUI2N0QiLz4KICA8cGF0aCBkPSJNODAuMSA5OS44YzcuMyAwIDEzLjIgNS45IDEzLjIgMTMuMiAwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjItNy4zIDAtMTMuMi01LjktMTMuMi0xMy4yVjk5LjhoMTMuMnptMC02LjZjLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMiAwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjJoMzMuMWM3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjIgMCA3LjMtNS45IDEzLjItMTMuMiAxMy4ySDgwLjF6IiBmaWxsPSIjRUNCMjJFIi8+Cjwvc3ZnPgo=", "juno": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFBUlEQVR42u2ay48UVRTGf/dWVdPzBAUU8YGEgIpiiMYohMRATIgmxoS9LAzRhYn/AEtduTA+4kY3xsTExB24ERLjAgkCCzMxgPJ2eIgTBhjm0V117zkubtU8YN23xp6uVXe6Fn2++51zvvOda1RVWcKPZYk/PQB6APQA6AHQA2CxPTEbs12MwRsDulQBMAbO31TMUgNAgdzDySvC/p9yfrngabnOM6EWAEQD1Y9eEv65qyFIhbst5eApx8VbwoFTnvFpnQWnU09aJ9V/POPY9kTCm5sTnMLKAcP+XQ1WNAveeSlleZ9BoaPpkMamuRdILfx+XTh+RRmbdOzcYBlcZnACjRQ+2JGRWDoefPQUMITgr9wWPj9S0Ejh/C3l018drSL8BpDYufc7/p9ijcO5h2t3hGN/CwdOe27OQCMBFWWipWxZY9nzXMqWRyyrBwwmUhuIlgJTbTh81nPonHBjSlmxDNpOMQp9GZy8KhS+YKZIef2ZlCQWK2MbIhMt5avjjoOnHAMZFBIK4vvbMt56Nn5NjgaAlirPltT+7EjB9yOOvhQ+2t1g+7oE1fCeNfEAiFYETRlYpQHefTlldT/s3JCwfV2CLyVwzOBr0QEVCH2ZYffGlK2P2qD/69IjdZiiFdWvTSgr+2FZamYnwMR2MQCq4fSTRTSCRQNAdGF+T7RhKldmWp7bLcPohJJZeG1TGvRBJCGUxsz9y+PK4T9zRq46rk0ZJnNletqRe2h58E74bu9ynq/qgukCACp6fXsi55vf2oxPK1kKmQWDYjAkFgaM4Aw4iVuSbKdpb4DT1z0fH56mEHhoyDCQBd2fGIOo4EXwGgal2N2gowCYkgGPPWDZs7VJKxfGJgXnwXml8DJb/UUV75V4ZliEFKhyeLhp+PCNJrs3Z/z8l+PQ6TbiFWNAREN3EC3fN90DwL3psOPJhBfWJhw912IsVywh8Lk2qRgViDYKRZbCojCZKyqKc0rVgVVD8CJK5BoY1xCxpdbXEHEZeOgV1efYurQ2T1BLyms5JgogPv5VheiiVCTk/fzcFw3B13FXIz4DdC74OSDqmgVrAKCivvhA+zAKByDyQrq/BpjZqTCcfKj+5XezJBhQ0l7D8CORhp5F1wW8KLbUO84LIuAKWToAVAKocLKgI3Q9AAaDiuK9oEKtwdeiAyCceuHkvr4vCirS3QxQFH/vqZddoQ4lWG8NkFAMKyaIKLpUABBRpPQDKuOkuijR/QAoeK8kZl7uq0bP/9qksFOzwAdAyyGphoZQwzBkMARTRC2zqrBSwkkS9+9EaYOiwQQVhTSBXExJ+bm5wHshSw3Dg1l3AVCtu7PUYA2MXM4Zu9UmsQYvQQKrKq1CWb085fEVdnZo+t+nQDXpj4zm/HBiksvjjmNn8+D/m5D3ICQGJlvCrqebNLOwH4i1P+wYANVq68KYZ8+X/3LhRk4jMww2LIklSGFVEmuYyZVVwynv7Rwitj2SdjLvEwN/jLa5NJazflVGu1B86QhZo1gDLSfcmVK+2Psgmx7Oop5+RwGoNsGvbGyycU2DM6NtBvosqsEDEIHcwXB/wtf7VrLv1aFaVucdXY/PT4NPDt3h+MU2LacYY1g7CC+ub/L29iGeWpPetz7vCgDmgwDQdqHAAfQ3FqaLrckVinJBoroYdS+9q25ga7TE4l6RmT/smDrN8JqkcA3L38XpCPUA6AHQA6AHwGJ5/gOG5+dtZdw83QAAAABJRU5ErkJggg==", "claude": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAZgElEQVR42tWbefBlxXXfP91973v3Lb/322cf0LAKiDQSew17IRYhZIxBioylYGtfSonsVJSk4qSkqiR2pRSXS7GQLceUjRXjCGzJIEARKLIZ0CBsAx4kYMbDNsMMs/zmt7z93Xu7O3903+X9ZpCEsFSVVzU1M2+5t7vPOd/zPd9zrtj12fda/ileQiCExBrN/08v+YZ+bbOzs4BAKFV67+f4egP3/OkPQCpkteZvLsFqTDwEIX7OJiyv4/W/gp/+1A02jf2GnQf8TDdv7fGvbzQ2MT/1veUbWdDPLd6lQlaj17SyfQMhELyxlYkfb6HjL3n8tz/u9Qat/LMDwfJRqMAtUEqEVCDVa2eL1/rsRzrczwZcg3+q+BQqAJ2gex2wBoRE1hruUMqLFxIRhNjRYNyiQo7hy8/rFbxud3wNq5p4ANowsfUiwqlZkqOH6O1+yntF4N3eubMZpas2L7D+9yiJqNR+wkOwPvRUcf3XZzmCPHatdRc57sUsY98TCjDFwUmJ6fWYvvhdzL37V0EnoBQrjz3Ewr1/DMqf8/GyhQA7GtA47e1MnHMZy9vvZfDSLmRz0l1HyNyjXhOD8s/tOC8Yw4xVhjYOUyRCuv9Y629mx4HNZouWPt/7G1rrrymwoyHRppOZecdN2H4b3e9iem1a515OtOlkzLAPMvutLS1aYAd96iedxbpb/hUTbzmPDbd+lmjjFmw8LDadHYK1+e/GQsWa0r9Lh2CM/6PB+H1ke5XSH4AxxcnpFKx2FzO6uGl2YkYXeV8o913AJjHV2XWIsIo1GuE3K4Sg+baLETpFZIeZH6rMPWvywqsRYUi6sohqTFA7dWsJI0RhACFKh+Lfz6xvTWnDxoExtvg8W7ctea4xmUlFcXEV+FMqoXaW7wWFR5S8QFQjBvv2kHZXQCpsmoCSmHhI48xzCebWY0aDYuGZxVKNqlQJ59djkxgRVrBakxzah5B+TSZ1Bw/+EMEMephe272f4Uu2SaXcn2wPUhaeA+4zUUSQRKpSbHsXERKkKNw9x4HCIBlBwWikCkjai8T7X0RWIkQQuu9qTdCaonX2ZZDEiPw+/vpGQ9RAhlWXSWSATWLSlUWQAUKnRWxb44hXGtM8dSvNM89DVmtYk7rlGHMMcFohCuwR6tiwsBDkMQEIa7BSuVPTOre4zeJQKfd+dlg+Fi1us4vfuZtoy5vdRgGkwMYjWm+/hOXt92J1AioELMJYjNGoehNZq3suodCDHnplARFUisVLt3irU9b+0seZOPsSLJbBnh/w6u3/FRtWXCWagxtjICgsWFsK9ZJRpbOo8BsViOyEsmuUU7hOCxeTssAKrZFRxHDf86w8+gAyqvtrCGwyIpiZp/nWbZjhwK/NuZEFVFR3NNdokIp0acGFixC4o7fus0GXtTd/gtb5V2AGHWy/Q+P0tzF1yfXYeDTON7J4z/aSg6R3X1ngiHQWNc4lMaU4z4IkAyCwUmH7XWxnGdtZcd7gGaA1BhnVWN5+H/Hh/YhK1XMAFyZT265FVapuU9bfR6eo5hQgsdYiK1XiIwcw8cjFu3D2Mf0Oczd8iMnzriBdWXSkSypsMqL6pjf7w8pwUbh1IXKLWyFzZip0knuJMAaZ0Vf3XYnNAFEWXoFw8W4HPSa3XcvaW36dmWveh4rqmEEPISXCWoRU6EGX5UfuR1acVYWQmHhEdeMWmmdfhu13fIg4vFH1JjIIXOYA4kOv+JATCGsxvQ5z1/4KU5dcR9pdQVaqWG9VEVTo/eD7LvMI4dZqrT88zzqtcZv24G1V6A0qsVIiRQZuuBNBOCwoFyLCgh32mTj7UubffSvNs85j5sob2fDh36R24mnoXtvjRoqsN+k8/h16zz1JMDHlnEgFoFOmLr4OWa17C/l7Vj1oei+KFw44SwYBZtCldcHVzLzjZkyv49OrRQiJrNaJFw4y2PWUA9E0KVw9Az8hPKZ5oBd2/HNrkUXc5GhRAIUs4sWmKcHcemw8Iu0uY/o9wtk1rL/13zJ5/jt8DeC8wFrD8qP3Y5LELVo6L6htPpnm2y5GD/sI5TYTTM85MFIhpt8hPrQPUa1hum2ik85izY0fxKbxODcVAms0h++6jbTXdrVF5uKZ12bYkRkzTRBpUqRED+TuADJ3lwFCGxcz1rtTBohSkBx6BVGNUFENqzVmOERKwZqbPsqaGz+C1Sm210Y2p+j/8HE6Tz6CarSwOkUEjh9MX3o9qt7EJAlSCMLJOXefMER32+heG4tA1Zuse88nEWEFjHFym+cfohpx9Ft30t/zNLLe9LqERWD9QTgAFN6rLUBQwarAeXdG+x0GSEhThDEuDQo8czOINPUMMUFVIno7v8fK4/8XUa07C0qBtQbT7zJ10TvZ+PHPE86tQ/dWELUGSw/fQ9JeznmBTROizacwef6VmPYSIqoTTM5gdYIIK4wO73cZoN9hzU0fo7p+M2Y0zAVXrEE1J1l59FssP3wPamLSka4sQ3mWmRE3ay1WynxvLrW7+BdGO2jD+o1np2YNVkqsENggdGQiS3lKsfAXv8/CN+/ACoWq1lwFJwW6u0y0+RQ2feq3aG29CJuMGO39R1Z2fBvVaLn0JwSkCa0LriKYnnfV2MSks6wKGO1/gXRpgblf+CCtcy5DD3rIIMhDUtWaDF54joX77kDUW6ANQmu35iB0Xq1TrGezwlpEuWCSEisVIk1ywJRZbhRlfpjlX2ucC1nnWkIqRCVieft9HLj9vzDc9zxqYtKdvAow8RBZqbD+1n/D/A0fQU1MsfTdrztmF1YcCuuE6IRTaJ13JcRDVFRoBvErz9N864XMXvPPMcO+zwx+fSpAD3ocuvs28B5qS9Wf8MCfpUGhlEvbeWpMi72JbLfWp8Gc6voiwriNOyoqcopsrcUKCOoNRvv2sP8rn2d5+33IRgsZVvxaDGbQY+aKG9j0yf9M0JrmyL13OIqcERCd0jr3cmSj5eschW4vQdRk46/+O1cGY8cIi6hGHLn3T4gPvIio1pxnemxyKVW7+BfC8yALVjvgy4SY4xRl6tMXnPY5hCMLgtJmg4r7sjEIIXwc+WJCp4hqHaSk9w+PMDrwEtGJp1OZWeMrSgNpTGV+HRPnXk7/2ScIWzOEs2tcHBqLqjcZHj5I49S3IKMaNolpnL6VoDXt4rpUpqt6g6W//iZL3/ozZH0ip+0ubStP1oT3CoHw74ks9wuBMGnBdwQOEI1G7P7MDY5x+zdybu89wQrhi5gidaB9LR+Ejql1lggmZ5m+5peZ3na1+32auDRTqWIBMxo6L8nSrJTECwcJW9MO6cHxeV2oRdZoRBAyOrSffV/4jNukL7mdS1tsmroaw1hEpYqoRjAcYMCRsZzTCAfwwtc5yjHUAOlOWhidpweR8XBrHXpK5U/OgaENAoTxIZMmyOYkejTg8F1fovvUdtbc/AmijVswg66jtSoY37wvWqpz61yR4t+3ZlwqE0IiVMjCfX+KGfURYYQeLYPRqKiBiGpUN28imFlLZe1mgpk1ROs2kyweZvmR+xns3Y2g8CThiZ0r+Z1HBOjU82RblLiZe2EhqDg26F3fCulOkRSRpRXr8nRQazDc8zR7f+fXmbvuA8xc9V7QCWY09Hl8ldCm9THaYFkYFVGd5e33033iYdTsOqrzG6iuP5Fwfj3RCaejGhOoiSlXG+D6FDYeUVl3AqLWZPAH/wlUgJUCYT0QqrCQ2owhyMUDhFN4jM2popUSO+yB1t46vniUynmIEC7HaxdvVkpEfQK05sg3/ieDF55h/saPUFm7EUaDY6XtH6nzC0hTVHOSjR//PNWNWwha0542S2w8wMQj97cxyCAs2mQqYLD7KWyqncCa0WThNYgMXC2I3Z/5BZtvPtcEC3G0deE1BLNrSZeOYOOhU2NGA7Cge210v4NJYoiHLnnqNNcM0pWjBJOzzF1/K1MXX+st9Trl9qjuQL7fxaZOHbJCugJMBc7CaYIZ9IgXDjLau5vhvucZ7HoSHY8cfhkf88LVK2Tp1WiCsc0L1+REukKkfsa5zL7zFmwSO1DM6KgxeQVmRgOsNdg4zl3QDPuk3TZ60CU5coD+8z+gsnELzTPPxo5eXwPVDLqOB4QVrwAZdL9LurLE6OBehi/vIl06wvCV59GLh9CjISiFqkQuVIWvZo1xtY6QXmITvi+QCQVClORwi6zWGOx+iuUd/4fJC65yYYBDZVmpOHe2liCqF21xJZ2SczxjjgaFcPGTthsqVUhTzGjAcP+LDF7ezWjvPzLauwu9sohJU4zRSKMR1RoirBBUI8fytM5lL1+SlrTBQtgNjttj95q5EJKlB77KcM/TrrSVChtUUFENWWugKhFWuMJF1Zp5nKlGK2d3Kqq5Q8uUn9fR4uo88wS9nTsYvPgM6dFD6O6Kc+kMe6REWosVAtNr5yEmG63j40xu44Iei92/caNFJ6UTylRi8r9Nd7kIEQHWWJ8JjBMvcfV7dgeZ6YoIzKiPnJhm/a/9exqnnOVCQMqfrNs0HKB7K5gkwRqLGQ0QKsgVZmsMur2ITRPS9iK23yVtL9J7+jHHX8Jq4QUZJc5EX+vCIMg5clb2Zhp7Jn0DcmIWMLksjZSeJzBGNDKd3+IEFGuhuXUbM9feQrT+BLd5Ffz4tpfHFpOOqKzZ7A/XkSvj1WVrNFa79Ou0D5HbrvfM33P4rtsw/Y6vRE2xVqGK+wt5vOaozwJ54wLPzb3MTFZYrEpnPmTMqI+NR1TfdAZz7/oAzbdc4JBba0Stjum2XWybH93utggO3vl76OUF6medR7TxZGonvdkpSmEFjMXqBD3olTbkwq555jnYGz7IoTu/eGxqzRsleB5AuXlgHXiUiVH2vvRNzqxJkr+vHAfQMXo0IJxZy/R172fyvCuQYQXTayMbE9gk5sjXb6dxxtk0Tnura4RI6fS9Y6DfENSbrH//b/DKl/4DC3d9mWBuHSoICTeeTHXzKUQnnka0cQvB1FzebLEe+CyWcM0mRFR3Yky+F110lrJWwO7PvNsig8KqAt9HK3VxZDDeh8tO0se67q4QTK+lte0aprddSzA1i+l3QCrUxBT93Ts59NXfobXtGmaveg+kKWm/6yjtxGShEZY8wuoUoUJ0knDwjv9Gb+cOZK2OHfQwxinIMqpR3bCFcO1mqm86g8rcWlSjRefJR+h8/0F0Z9njjS05tx3bl9j9L99li3ZPZunQnVa+sAI0sguIIHRgZDQTF17D1KXvprpuE2bYx+qUYGKatNdh+bvfYOGe25m5+pdZe8unXVxWIg7d/QfMXHo9lTUbHadA5IWQ9fRceC1RhFUOf+02lrffi2pOOunLo7ntt7HWIsIqIqo53aC9iAhCxwIzg0rpCzRvZU/tg6K5aIvaWifjDQa8tTPuLwW6s0hlwxam3/l+Jt5ygW9pLSGjCFVv0d+9kyN/dTuDXU/QePulzN/0YUxnGTkxydF7/5R4/wuE8xtBSlYee5DK2s3UTjzViSphlcG+F7DxkMbpW0nbS8zf/HFkY4Klb/85stbMRU/RaCGFcCV0mmDTBFlv5noAIiiMmYe2dRWtdY2ALPDcSRk9xpTGmoECMKnr57/9MjZ87PNMnHUeutvGjIaoZgszHHL47i+z/8u/yWjfbiobT2Lt+z7tKs5KRP/5Zzjy9a9Qnd+Q9xsGzz3B0oNfAxU6PEkTwul5Fr/7DZZ3fBvVnMQMusy96wPM3vAh73lOvMlYaU5vhXSbM74zlMbjLfWsW+TTYpB3VlUJB8r02BjfMXI6IUIwd/MnmDz/SnS3Tbp8FBnVEdUqnZ07WPyrPyJZeBU1MY0Z9Zn/pY9SmV2D7ncRQYXDd34RmyaoqTlX/49GICSdJx6mv/sfqJ98JrrXIWhMMHfdLez97U+RLh9l5sqbSNuLzFxxI6rW4MiffxFRa4x3rMUqQM+HMrLYN+MtPXJN0H9BBn5wwJ+D1qXmoMAOetTPPJ+Jsy8jWTqM1SmqNUXaWebQnf+DQ3/8267HPzWH7rWZ+8WPMrF1m+/7T3Loa19i9PIuguYk4doTMMkQq1PH33XK0Qf+DKsd2Op+l+qGLcy/51Mcufs2Dv/FV5C1Jrq3Quv8K1nzLz7rijCdutyepWhRmjPKOtGUegE5MRKeB4jSAfhTKcZNLGjr+3+ue5scPUjaXiJotjBxTPvv/obFb/0v9PICstZACIlePkrz/CuZvOhaksUjBNOzrHz/IbqPfRsZ1bFSEU7PY7XGpinpivOiwbN/x/L2+5i67HrS9jK2s0zrwqvoP/cEyw/dRdpeZP6mjyHShImt2xBhyKGv/ndEMoKK6x+Q6GLWISuCgorbSwaCedsc1KcvPP1zhWpqx11IlicrLKISoY++yvDFZxm++Bwrjz5A5/EHsWns5CepsIOui/v3/2uv3NSID+3j4B1fyDW7YG4dU5dc57pBowFLf/2XEI8Q1RqDF56hccY5hJNOGxRCUNmwhe7TO4hfeobh3j1UN51C0JqmMr+B6KR/Rn/XU5h+243f5bNEJXKkfAbIMprIGsECiUkdUJSY1BhzyhqLnkeLMCR+ZQ/dJx8mPvCCq8vDak5VqUTMv/dTqKgO1qCTmMNfuw3bWXJqbjIk2rAF1ZzC6sQBWhx79cm1x45+8468QWqTmOqGE5m++n2IoMLopWd59Q8/x8pjD6IHA+onncn8zZ9wVi7NLLjk5cEv8SO9KixCRFV8X8D42LelDJChahq7C0vlNqcTV5tXqsio4Xi2PyRhDCYeMvuLHybafLJ36waLD97NYM9ORKPlrhcPCSZnckqqOysuhUkJcR9Vjej/8DGWH3vIzRlYi+l3mLronUSnbXV7G/Y5cufvsnDPH6H7PcL5DchKtWCpftYAP7voNm2LcRuTQjIEk2aSWFYNioLpSQXKXyzn7aVRGn8YSNd7T3ttpt7xHlrnXO6UoKlZlh+5n/Z37kLVGi5HCyCMCOY35uGmB70i7WZirApYvOd2Gqe+lXBmnrS9ghKKuRs+xIEv/0dsMkLWm7S/94DrV0YNR7CkFzszFag8zQbFZxRe4ELAz/NgSt0TY9zB5JNhRVeFVUPSdtijdpqb1tCdJVRzks7Oxzj6zT9xklYp/4qoTmV+I3rQRwiB7rUx8cjHrmudiWoNhl2O3HUbJomRlQpm2Kcyt57qm87EpAmogKDRYvTyLobP/i0ijEoZwI5T4JzC23FD6tSHQAZ+2eibMRAPSmmkNBQ1xq1NXhBNXX4jMghRtSadp3Zw5M7fRdiSFZRyLfbJWYLpeWyaYLV2k2XWuIJFKQiqEA8R9Rb95/6exYfuRjUnXbEjJEFjAuJRMfoY1d0hG+3nGH3KK7fCyiV7RqB8piumxPKyVrlyM6qvAkV/UZ26WqGUKoWQDF/ZgzWG/su7OPqXv+87MUHpAC3WpFTWbkY1J5zEbi16eaGoOZLYe6Efn6k1aH/vATpPPQoqID58gNGhva7Flia5xxxj4ax4s9YBn5TjxZbRJSaolMsYWbfEakj9/J1lHFWFLdUKpclSk7Ly0P+m/8PHSQ+/AukIKjU/Mhv6TpLCWks4v8GJJn6Bpt/JZ3xy95RBTpNFEnP4q18gWLMJ01nCdJZckSN96i4ToKyu0UkxP1hWu8Sq0V8EAan/gh9acumhHC/krawcD4KwVDMAYQUBJC8/59pcKixcME38WJzv803OgtaY0QhVx8V/JfK0OynNI4q8RyGA9ODLzkGD0NctIg+/XGVKRo7u5lOsougMZ+P81jd74iFYjcRPXLnYUKVUoVeNxq7S8VRYYIzvBYjaRFFrl8dTpMLimqy9nTvQgz7h9Dxpv0u8/wXPSzJpvpjwKCyF4xph5I1VwiLhFauMEvtWPciSd2TA5++TDJ0RVYDY/cmrrBtexBOiEtpnB5P9X+uCcJQmrxCeS+RZpPQMQKbDZ7NCwz61M86n/uaz6Xz/QZJXX3INzWS0yp0L/dEdiM1TrgutwGOHHX9iJccmURhHqlU6pM1xwh3A2Mh8UShgtENlHY/raSooCEVWgvrZgqzjMjbYnNXmnl/YJHY0V0lEJSqsVLa6CotFZ6GWhZb04/rGHPuoTnmIWoXjfECpQhyVWXc4iyM/vjLm6hnFzQUTWdTYUDDIHDPksc8aCDf+QlrQaxEEiEqlMFQmVmTXLw9taF1gTibUlA7TeUR67LMN2Z6C0MW7EGMTsFlmkDlDMiYfNChKR+PBwhTj6GPqMaUUIwvWqEoLy4aXsrE1P8CI7/PlKTDr+Ss1HmLlHsLYQxG6YHdWjwseGab4Buu4+lwSevL5gOyHuQV8zOhsNqCkEGXunwFKZnk/KAlekSlnkTR2lrBJMbs75i2ltlxaSrFCjT/8UOYsWahRHt/PJt29fJfGhZyX9QaEt7vHJffAhLHjsXaMG0tPKFRJLrPFg2eZnJ5RTN+qLjBF5hMjeczKcooV45VcbiUDNi04/HH7mMf7HYWWmVHsVU+qZB4txzfsSYgMVsUUhV6QDTpnWCHFsY/xpHHRkvbpJgdLWXLVsed+7PiB5Y+3cJw+BcdqluXnmPNRXFFgVP6onhgzojzeQ4pjyJrNCWYxnDNEeWxMZamz/KiLzUDTFpsuaw45S1tdY5hSP1Ie89huacHF7/J2uDj+wMWqCRTcAM1xWmMmKT0rtOpAcn3NjA0gOne1pe9TCo3ytVd1gjLuf7yG6VgaFK/1xOb494U4Tu9RjONY6fX/ADgenUzqS1YZAAAAAElFTkSuQmCC", "cellebrite": "data:image/png;base64,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", "base44": "data:image/png;base64,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"};
+
+
+/* ---------- Icons (stroke, 24x24) ---------- */
+const IC = {
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  key:'<circle cx="7.5" cy="15.5" r="5.5"/><path d="M11.5 11.5L21 2"/><path d="M16 7l3 3"/><path d="M19 4l2 2"/>',
+  monitor:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
+  code:'<path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  refresh:'<path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  database:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  spark:'<path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/><path d="M19 17l.7 2.1L22 20l-2.3.9L19 23l-.7-2.1L16 20l2.3-.9z"/>',
+  file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  layers:'<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>',
+  send:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>',
+  flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+  eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  bell:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  cloud:'<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  checkc:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
+  x:'<path d="M18 6L6 18"/><path d="M6 6l12 12"/>',
+  left:'<path d="M15 18l-6-6 6-6"/>', right:'<path d="M9 18l6-6-6-6"/>',
+  arrow:'<path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>',
+  down:'<path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/>', up:'<path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  alert:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  award:'<circle cx="12" cy="8" r="7"/><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/>'
+};
+const icon=(n,color,w)=>`<svg viewBox="0 0 24 24" fill="none" stroke="${color||"currentColor"}" stroke-width="${w||2}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]||""}</svg>`;
+document.querySelectorAll("[data-icon]").forEach(e=>{ e.innerHTML=icon(e.dataset.icon); });
+document.querySelectorAll("svg[data-ic]").forEach(e=>{ e.innerHTML=IC[e.dataset.ic]; });
+
+/* ---------- Kinds / hosting ---------- */
+const KINDS = {
+  user:{label:"People", v:"--k-user"}, identity:{label:"Identity", v:"--k-identity"}, core:{label:"Application", v:"--k-core"},
+  data:{label:"Data store", v:"--k-data"}, conf:{label:"Confidential data", v:"--k-conf"}, guard:{label:"Security & audit", v:"--k-guard"},
+  ai:{label:"AI", v:"--k-ai"}, ext:{label:"External system", v:"--k-ext"}
+};
+const HOST = {
+  cloud:{label:"Cellebrite cloud · VMT account"}, saas:{label:"Vendor SaaS · Cellebrite tenant"},
+  existing:{label:"Existing Cellebrite system · vendor TBD"}, tbd:{label:"Vendor not selected yet"}, endpoint:{label:"Employee devices (browser)"}
+};
+const TIERS = [[1,"t1","Org-visible","Tier 1"],[2,"t2","Manager chain","Tier 2"],[3,"t3","Confidential","Tier 3"]];
+const DEC = {D1:"Rating write-back to HiBob",D2:"Who sees status comments",D3:"Hosting region",D4:"German works council",D5:"Manager approval of goals",D6:"Skip-level rating access",D7:"Method & Target limits",D8:"Status & scoring rules",D9:"AI provider & scope",D10:"Talent platform choice",D11:"Retention periods",D12:"Mobile support",D13:"Build tooling"};
+
+/* ---------- Components ---------- */
+const C = [
+ {id:"users", icon:"users", label:"People", sub:"Employees · Managers · HR", kind:"user", phase:"MVP", owner:"HR product owner", tiers:[1,2,3], x:500,y:20,w:180,h:56, flow:"auth",
+  purpose:"About 1,200 employees use VMT in Chrome or Edge on desktop. There are four roles: Employee, Manager, HR and System Admin. The Manager role comes from the HiBob org tree.",
+  data:["Browser only, with nothing stored on the device apart from the session cookie","English UI, with dates in the viewer's locale"],
+  controls:["Okta SSO with MFA is the only way in","Shorter session timeouts on confidential screens","Confidential screens clearly marked"],
+  questions:["Responsive status-update view for phones? (D12)"]},
+ {id:"okta", label:"Okta", sub:"SSO · MFA · roles", kind:"identity", phase:"MVP", owner:"IT", tiers:[], x:500,y:110,w:180,h:56, flow:"auth",
+  purpose:"The single identity provider. It authenticates every user with MFA, issues OIDC tokens and carries HR and Admin role groups. Joiners and leavers flow in from HiBob, so access ends on the day someone leaves.",
+  data:["In: person lifecycle events from HiBob","Out: OIDC ID token with employee ID and groups"],
+  controls:["MFA enforced, with phishing-resistant factors for HR and Admin","HR and Admin groups need approval and a quarterly review","VMT has no local passwords"],
+  questions:["Does Okta already run HR-driven provisioning from HiBob?"]},
+ {id:"webui", icon:"monitor", label:"Web app", sub:"HTML UI · Chrome / Edge", kind:"core", phase:"MVP", owner:"Product owner + UX", tiers:[1,2,3], x:280,y:240,w:180,h:60, flow:"goal",
+  purpose:"The front end: My VMT, my manager's VMT, team view, org tree and search, check-ins, year-end evaluation, and HR cycle admin and calibration. It makes no permission decisions. It only renders what the API returns.",
+  data:["Out: calls to the API over HTTPS with an httpOnly, SameSite cookie","In: only the fields the viewer is allowed to see"],
+  controls:["Strict Content-Security-Policy, with no third-party scripts","A visibility badge on every section","Autosaved drafts and an explicit Submit"],
+  questions:["Manager team view and HR calibration screens still need to be designed"]},
+ {id:"api", icon:"code", label:"API / backend", sub:"business rules · scoring", kind:"core", phase:"MVP", owner:"Development team", tiers:[1,2,3], x:500,y:240,w:180,h:60, flow:"perm",
+  purpose:"Holds all the business logic: goal and rating lifecycles, check-in windows, the goal achievement score, VMT limits, and manager overrides with reasons. Every request passes through the permission service first.",
+  data:["Out: reads and writes to the main database, and to the confidential store only through the permission service","Score = average capped attainment of active targets, with lower-is-better KPIs inverted"],
+  controls:["Deny by default, with no endpoint bypassing authorization","Input validation and rate limiting","Every state change writes an audit event"],
+  questions:["Attainment cap and target weighting (D8)","Manager approval before publishing? (D5)"]},
+ {id:"perm", icon:"shield", label:"Permission service", sub:"org-tree based access", kind:"guard", phase:"MVP", owner:"Development + InfoSec", tiers:[1,2,3], x:720,y:240,w:180,h:60, flow:"perm",
+  purpose:"Decides for each request whether a viewer may see or change a field in another person's record. It combines the relationship from the HiBob org tree with the field's data tier. The tested matrix is a launch gate.",
+  data:["In: viewer, subject, field or tier, and action","Out: allow or deny with a reason. Confidential reads are logged"],
+  controls:["One policy module tested for every combination of role and tier","Cache rebuilt after each HiBob sync","Break-glass access needs a ticket and alerts InfoSec"],
+  questions:["Skip-level rating access (D6)","Visibility of status comments (D2)"]},
+ {id:"sync", icon:"refresh", label:"HiBob sync worker", sub:"daily + webhooks", kind:"core", phase:"MVP", owner:"HRIS + Development", tiers:[], x:280,y:370,w:180,h:60, flow:"sync",
+  purpose:"Pulls people and org data from HiBob, with a full daily reconciliation plus webhooks for joiners, leavers and manager changes. It validates, compares and applies changes, then rebuilds the permission cache.",
+  data:["In (read only): ID, name, email, manager, department, country, status, dates","Never pulled: salary, national ID, home address"],
+  controls:["Read-only service user with the minimum fields","Anomaly hold if more than 2% of managers change","Leavers: goals archived, reviews reassigned"],
+  questions:["HiBob API rate limits and webhook coverage"]},
+ {id:"maindb", icon:"database", label:"Main database", sub:"goals · statuses · people", kind:"data", phase:"MVP", owner:"Development team", tiers:[1,2], x:500,y:370,w:180,h:60, flow:"goal",
+  purpose:"Stores people and the org tree copied from HiBob, cycles, Visions, Methods, and Targets with baseline, target and actual values, plus statuses, comments and full change history.",
+  data:["Tier 1 and Tier 2 data","Full version history for goals and statuses"],
+  controls:["Encrypted at rest (KMS) and in transit","Row-level security as a second line of defence","Daily encrypted backups and quarterly restore tests"],
+  questions:["Retention period for closed cycles and leavers (D11)"]},
+ {id:"conf", icon:"lock", label:"Confidential store", sub:"ratings · reviews · dev goals", kind:"conf", phase:"MVP", owner:"HR + Development", tiers:[3], x:720,y:370,w:180,h:60, flow:"rating",
+  purpose:"A separate store for Tier 3 data: self-assessments, 1–5 ratings, values ratings, calibration notes and development goals. It has its own encryption key and can only be reached through the permission service.",
+  data:["Tier 3 only","Rating lifecycle: Draft → Calibration → Locked → Released"],
+  controls:["Its own KMS key, with every use logged","Every read and write audited with the viewer and reason","PIPs are never stored here"],
+  questions:["Write released ratings back to HiBob? (D1)"]},
+ {id:"ai_gw", icon:"spark", label:"AI gateway", sub:"drafting help only", kind:"ai", phase:"Post-pilot", owner:"Development + InfoSec", tiers:[1], x:280,y:500,w:180,h:60, flow:"ai",
+  purpose:"The only route to the AI model. It powers 'Generate with AI' for SMART targets and the VMT Assistant, using only the user's own goal text and the manager's published Method.",
+  data:["Out: the user's own draft text and the manager's Method (Tier 1)","In: suggestions labelled as an 'AI draft'"],
+  controls:["Never sends ratings, reviews, others' data or PIPs","AI never sets statuses, scores or ratings","Every prompt and response is logged and rate-limited"],
+  questions:["Provider, region and no-retention contract (D9)"]},
+ {id:"export", icon:"file", label:"Export service", sub:"Excel / CSV", kind:"core", phase:"MVP", owner:"HRIS + Development", tiers:[1,2,3], x:500,y:500,w:180,h:60, flow:"export",
+  purpose:"Produces Excel and CSV extracts for HR reporting and BI. Each extract is limited to the requester's role and org, filtered by tier and watermarked.",
+  data:["Out: HR partners get their own org only, and central HR the whole company","Out: managers get their own team's Tier 1 data (optional)"],
+  controls:["Watermarked with the requester and a timestamp","Short-lived download link","Large exports raise a SIEM alert"],
+  questions:["Does BI need a scheduled feed?"]},
+ {id:"audit", icon:"activity", label:"Audit log", sub:"append-only", kind:"guard", phase:"MVP", owner:"Development + InfoSec", tiers:[], x:720,y:500,w:180,h:60, flow:"audit",
+  purpose:"Records who viewed or changed what: confidential reads, rating changes, overrides, role changes, exports and admin actions. It provides evidence for SOC 2 and ISO 27001.",
+  data:["In: events from every component","Out: a near-real-time stream to the SIEM"],
+  controls:["Append-only and tamper-evident","No one can edit or delete entries","Employees can request their own access report"],
+  questions:["Retention period for audit records (D11)"]},
+ {id:"platform", icon:"layers", label:"Platform services", sub:"vault · KMS · backups · monitoring · CI/CD", kind:"guard", phase:"MVP", owner:"IT + Development", tiers:[], x:280,y:630,w:400,h:56, flow:"platform",
+  purpose:"Shared foundations: secrets vault, KMS keys, encrypted backups, monitoring, separate dev, staging and prod environments, and a CI/CD pipeline with security scans. All of it falls within the ISO 27001 and SOC 2 scope.",
+  data:["Dev and staging use synthetic data only","Every environment holding real data sits in one region"],
+  controls:["Penetration test before the pilot","Code and dependency scanning in CI","Infrastructure as code only"],
+  questions:["Cloud provider and region (D3)","Base44 for prototypes only (D13)"]},
+ {id:"outbound", icon:"send", label:"Outbound workers", sub:"notifications · feeds", kind:"core", phase:"MVP", owner:"Development team", tiers:[], x:720,y:630,w:180,h:56, flow:"notify",
+  purpose:"Sends reminders on the cycle calendar and pushes approved feeds to Juno and the Talent Management Platform. Failed sends are retried, and persistent failures alert IT.",
+  data:["Out: a title and deep link only, never content","Out: feeds that follow agreed data contracts"],
+  controls:["Templates approved by HR","Separate credentials for each integration, in the vault","Every delivery logged"],
+  questions:["Which notices are mandatory?"]},
+ {id:"hibob", label:"HiBob", sub:"HRIS of record", kind:"ext", phase:"MVP", owner:"HRIS team", tiers:[], x:30,y:370,w:190,h:60, flow:"sync",
+  purpose:"The system of record for people and org structure. VMT copies only the fields it needs and by default never writes back.",
+  data:["Out: identity, manager, department, country, status","Optional write-back of released ratings (D1)"],
+  controls:["Dedicated read-only service account","Checks for missing or circular managers"],
+  questions:["Is the org data clean enough (managers, dotted-line reporting)?"]},
+ {id:"aimodel", label:"AI model", sub:"Claude enterprise (D9)", kind:"ai", phase:"Post-pilot", owner:"IT + InfoSec", tiers:[1], x:30,y:500,w:190,h:60, flow:"ai",
+  purpose:"An enterprise LLM endpoint in an approved region, with no data retention and no training on inputs.",
+  data:["In: Tier 1 goal text only","Out: draft suggestions"],
+  controls:["Contract states no retention and no training","Region pinned"],
+  questions:["Provider choice and DPA (D9)"]},
+ {id:"juno", label:"Juno", sub:"learning suggestions", kind:"ext", phase:"Post-pilot", owner:"L&D", tiers:[3], x:980,y:240,w:190,h:56, flow:"talent",
+  purpose:"Development plans list skills, and Juno suggests learning for them.",
+  data:["In: employee ID and skill tags","Out: links to learning items"],
+  controls:["Never receives goals, ratings or PIPs","The employee opts in for each goal"],
+  questions:["What can Juno's API do?"]},
+ {id:"tmp", icon:"flag", label:"Talent Mgmt", sub:"platform · vendor TBD", kind:"ext", phase:"Post-pilot", owner:"HR leadership", tiers:[3], x:980,y:330,w:190,h:56, flow:"talent",
+  purpose:"The platform HR leaders use for potential mapping, risk, career hub, succession and promotions. It receives released results only.",
+  data:["In: released rating and goal score for each cycle"],
+  controls:["Only HR leaders can see it on the receiving side","Data contract and DPIA before go-live"],
+  questions:["Which platform, and build or buy? (D10)"]},
+ {id:"siem", icon:"eye", label:"SIEM", sub:"existing · vendor TBD", kind:"guard", phase:"MVP", owner:"InfoSec", tiers:[], x:980,y:500,w:190,h:60, flow:"audit",
+  purpose:"Receives audit and security events. InfoSec gets alerts for bulk viewing, unusual exports, role changes and break-glass access.",
+  data:["In: audit, authentication and app security events"],
+  controls:["Alert rules agreed before the pilot"],
+  questions:["Which SIEM, and how long are logs kept?"]},
+ {id:"outlook", label:"Outlook / M365", sub:"email · invites", kind:"ext", phase:"MVP", owner:"IT", tiers:[], x:980,y:600,w:190,h:56, flow:"notify",
+  purpose:"Reminder emails and check-in calendar invites, sent through Microsoft Graph.",
+  data:["In: a subject line and a deep link only"],
+  controls:["Send rights limited to one service mailbox","No content in messages"],
+  questions:["Calendar invites for 1:1 check-ins, or reminders only?"]},
+ {id:"slack", label:"Slack", sub:"bot notifications", kind:"ext", phase:"Post-pilot", owner:"IT", tiers:[], x:980,y:680,w:190,h:56, flow:"notify",
+  purpose:"Bot DMs for reminders and 'your review has been released' notices.",
+  data:["In: short text and a deep link only"],
+  controls:["Minimal bot permissions","No ratings or other content in Slack"],
+  questions:["Workspace setup: Enterprise Grid or separate workspaces?"]}
+];
+const HOSTING = {users:"endpoint", okta:"saas", hibob:"saas", outlook:"saas", slack:"saas", juno:"saas", aimodel:"saas", siem:"existing", tmp:"tbd"};
+const LOGO_OF = {okta:"okta", hibob:"hibob", outlook:"outlook", slack:"slack", juno:"juno", aimodel:"claude"};
+C.forEach(c=>{ c.host=HOSTING[c.id]||"cloud"; c.logo=LOGO_OF[c.id]; });
+const CM = Object.fromEntries(C.map(c=>[c.id,c]));
+const ORDER = ["users","okta","webui","api","perm","sync","maindb","conf","export","audit","outbound","ai_gw","platform","hibob","aimodel","outlook","slack","juno","tmp","siem"];
+
+const E = [
+ {from:"users",to:"okta",pts:[[590,76],[590,110]],label:"SSO + MFA",lx:600,ly:97,anchor:"start"},
+ {from:"hibob",to:"okta",pts:[[125,370],[125,138],[500,138]],label:"joiners / leavers (HR-driven provisioning)",lx:300,ly:130},
+ {from:"okta",to:"webui",pts:[[560,166],[560,212],[370,212],[370,240]],label:"OIDC",lx:600,ly:200},
+ {from:"webui",to:"api",pts:[[460,270],[500,270]]},
+ {from:"api",to:"perm",pts:[[680,270],[720,270]]},
+ {from:"api",to:"maindb",pts:[[590,300],[590,370]],label:"Tier 1–2",lx:598,ly:340,anchor:"start"},
+ {from:"perm",to:"conf",pts:[[810,300],[810,370]],label:"Tier 3 only",lx:818,ly:340,anchor:"start",conf:true},
+ {from:"conf",to:"audit",pts:[[810,430],[810,500]],label:"every access logged",lx:818,ly:470,anchor:"start",conf:true},
+ {from:"hibob",to:"sync",pts:[[220,400],[280,400]],label:"read-only",lx:250,ly:392},
+ {from:"sync",to:"maindb",pts:[[460,400],[500,400]]},
+ {from:"api",to:"ai_gw",pts:[[520,300],[520,338],[480,338],[480,530],[460,530]]},
+ {from:"ai_gw",to:"aimodel",pts:[[280,530],[220,530]]},
+ {from:"maindb",to:"export",pts:[[590,430],[590,500]],label:"role-filtered",lx:598,ly:470,anchor:"start"},
+ {from:"maindb",to:"outbound",pts:[[680,415],[700,415],[700,658],[720,658]],label:"cycle events",lx:692,ly:612,anchor:"end"},
+ {from:"audit",to:"siem",pts:[[900,530],[980,530]],label:"events",lx:925,ly:522},
+ {from:"outbound",to:"outlook",pts:[[900,658],[950,658],[950,628],[980,628]]},
+ {from:"outbound",to:"slack",pts:[[900,658],[950,658],[950,708],[980,708]]},
+ {from:"outbound",to:"juno",pts:[[900,658],[950,658],[950,268],[980,268]]},
+ {from:"outbound",to:"tmp",pts:[[900,658],[950,658],[950,358],[980,358]]}
+];
+const CONF_PATH = new Set(["users","okta","webui","api","perm","conf","audit","siem","export"]);
+
+/* ---------- Flows ---------- */
+const FLOWS = {
+ auth:{title:"Sign-in & provisioning", desc:"HiBob decides who exists in Okta. Okta decides who gets in and which role they hold.", w:960,h:300, nodes:[
+   {id:"hb",x:30,y:40,label:"HiBob",sub:"joiner / leaver / change",kind:"ext",note:"A new hire, leaver or role change in HiBob is the trigger, so HR never has to change access in a second system."},
+   {id:"ok",x:290,y:40,label:"Okta",sub:"HR-driven provisioning",kind:"identity",note:"Okta creates, updates and disables the account. Leavers lose VMT access on their last day."},
+   {id:"grp",x:550,y:40,label:"Okta groups",sub:"VMT-HR · VMT-Admin",kind:"identity",note:"Only HR and Admin are groups, and they get approvals and quarterly reviews. The Manager role comes from the org tree."},
+   {id:"u",x:30,y:200,label:"Person",sub:"Chrome / Edge",kind:"user",note:"Users open VMT from a bookmark or from a Slack or Outlook deep link."},
+   {id:"mfa",x:290,y:200,label:"Okta sign-in",sub:"MFA",kind:"identity",note:"MFA is always required, with phishing-resistant factors for HR and Admin."},
+   {id:"web",x:550,y:200,label:"VMT web app",sub:"OIDC + PKCE",kind:"core",note:"Sets an httpOnly, SameSite session cookie. Tokens are never stored in local storage."},
+   {id:"api",x:770,y:200,label:"API",sub:"validates token, maps role",kind:"core",note:"Maps the employee ID to the HiBob person record and reads the role groups."}],
+  edges:[["hb","ok","provisioning"],["ok","grp","role groups"],["u","mfa","sign in"],["mfa","web","ID token"],["web","api","session"],["grp","api","group claims"]]},
+ sync:{title:"HiBob sync", desc:"A read-only copy of people and the org tree, validated before it changes who sees what.", w:960,h:290, nodes:[
+   {id:"hb",x:20,y:40,label:"HiBob",sub:"API + webhooks",kind:"ext",note:"Webhooks for joiners, leavers and manager changes, plus a nightly full reconciliation."},
+   {id:"w",x:210,y:40,label:"Sync worker",sub:"daily + on event",kind:"core",note:"Uses a read-only service account. Every run is idempotent and audited."},
+   {id:"v",x:400,y:40,label:"Validate & diff",sub:"schema · cycles · gaps",kind:"guard",note:"Checks for missing managers, circular reporting lines, unknown departments and duplicate emails."},
+   {id:"a",x:590,y:40,label:"Apply changes",sub:"people · org tree",kind:"data",note:"Applied in one transaction, with history kept."},
+   {id:"pc",x:780,y:40,label:"Permission cache",sub:"rebuilt",kind:"guard",note:"Access follows reorganisations within minutes."},
+   {id:"hold",x:400,y:190,label:"Anomaly hold",sub:"> 2% of managers change",kind:"conf",note:"A suspicious change set is held instead of applied."},
+   {id:"al",x:210,y:190,label:"Alert HRIS & IT",sub:"manual approval",kind:"guard",note:"A person approves or rejects the held changes."},
+   {id:"lv",x:590,y:190,label:"Leaver",sub:"archive · reassign reviews",kind:"data",note:"The leaver's goals are archived read-only and open reviews move to the new manager or HR."},
+   {id:"mc",x:780,y:190,label:"Manager change",sub:"move open reviews",kind:"data",note:"Open check-ins and draft ratings transfer to the new manager, and earlier notes stay attached."}],
+  edges:[["hb","w"],["w","v"],["v","a","valid"],["a","pc"],["v","hold","suspicious"],["hold","al"],["a","lv","leavers"],["a","mc","moves"]]},
+ perm:{title:"Permission decision", desc:"One module answers: may this viewer do this to this field of this person? The default answer is no.", w:1000,h:400, nodes:[
+   {id:"req",x:20,y:40,label:"Request",sub:"viewer · person · field",kind:"core",note:"Every API call is described in the same terms: who, about whom, which field, read or write."},
+   {id:"id",x:215,y:40,label:"Identify viewer",sub:"session → employee ID",kind:"identity",note:"The session maps to an employee ID plus any role groups."},
+   {id:"rel",x:410,y:40,label:"Relationship",sub:"self · manager · chain · HR",kind:"guard",note:"Self, direct manager, manager chain, HR partner, central HR, admin, or other."},
+   {id:"tier",x:605,y:40,label:"Data tier",sub:"Tier 1 / 2 / 3",kind:"data",note:"Every field is classified once. New fields default to Tier 3."},
+   {id:"pol",x:800,y:40,label:"Policy matrix",sub:"single tested module",kind:"guard",note:"Reviewed by HR and InfoSec, with a test for every cell. Those tests are a launch gate."},
+   {id:"org",x:410,y:200,label:"Org tree cache",sub:"from HiBob sync",kind:"data",note:"Rebuilt after every sync."},
+   {id:"allow",x:605,y:200,label:"Allow",sub:"permitted fields only",kind:"core",note:"The UI never receives hidden data."},
+   {id:"deny",x:800,y:200,label:"Deny",sub:"403 + logged",kind:"conf",note:"A spike in denials raises a SIEM alert."},
+   {id:"log",x:605,y:330,label:"Audit",sub:"Tier 3 reads logged",kind:"guard",note:"Viewer, subject, field and time are recorded."},
+   {id:"bg",x:20,y:200,label:"Break-glass",sub:"ticket + InfoSec alert",kind:"conf",note:"Admins have no access to content by default. Emergency access is time-limited and alerts InfoSec."}],
+  edges:[["req","id"],["id","rel"],["rel","tier"],["tier","pol"],["org","rel","manager chain"],["pol","allow","allow"],["pol","deny","deny"],["allow","log"],["deny","log"]]},
+ rating:{title:"Rating lifecycle", desc:"Who can see the year-end rating at each stage, and how silent changes are prevented.", w:1000,h:420, nodes:[
+   {id:"ns",x:20,y:60,label:"Not started",sub:"cycle opens",kind:"data",note:"HR opens the year-end window and reminders go out."},
+   {id:"sa",x:215,y:60,label:"Self-assessment",sub:"employee writes",kind:"conf",note:"Private until submitted. After that the manager and HR can see it."},
+   {id:"md",x:410,y:60,label:"Manager draft",sub:"1–5 + values ratings",kind:"conf",note:"Rated against written level definitions. The employee can't see the draft."},
+   {id:"cal",x:605,y:60,label:"Calibration",sub:"HR + managers",kind:"conf",note:"Run by HR partners. Every adjustment is versioned with a reason."},
+   {id:"lk",x:800,y:60,label:"Locked",sub:"HR closes calibration",kind:"guard",note:"No edits after locking."},
+   {id:"rel",x:800,y:220,label:"Released",sub:"employee sees result",kind:"core",note:"Released on a set date with a notification. This is the only stage where the employee sees the rating."},
+   {id:"am",x:605,y:220,label:"Amendment",sub:"HR only · with reason",kind:"guard",note:"Only central HR can amend, with a logged reason, and the employee is notified."},
+   {id:"hb",x:800,y:350,label:"HiBob / TMP",sub:"optional feed (D1, D10)",kind:"ext",note:"If approved, ratings are pushed one way after release."}],
+  edges:[["ns","sa"],["sa","md","submitted"],["md","cal"],["cal","lk"],["lk","rel","release date"],["rel","am","correction"],["am","rel","",40],["cal","md","sent back",-40],["rel","hb","after release"]]},
+ goal:{title:"Goal lifecycle", desc:"Goals start private, become visible to everyone once published, and are scored from measured values.", w:1000,h:300, nodes:[
+   {id:"d",x:20,y:60,label:"Draft",sub:"private to author",kind:"data",note:"Autosaved and private."},
+   {id:"sub",x:215,y:60,label:"Submitted",sub:"manager reviews",kind:"core",note:"The manager checks alignment. Each Method links to a manager Method."},
+   {id:"pub",x:410,y:60,label:"Published",sub:"visible org-wide",kind:"core",note:"Tier 1 becomes visible to everyone, with a clear badge."},
+   {id:"ci",x:605,y:60,label:"Check-ins",sub:"actual vs target · 3×",kind:"core",note:"Actual values are entered and the status band is calculated."},
+   {id:"cl",x:800,y:60,label:"Closed",sub:"year-end · read-only",kind:"data",note:"Feeds the evaluation."},
+   {id:"ret",x:215,y:210,label:"Returned",sub:"changes requested",kind:"core",note:"Sent back with comments."},
+   {id:"dev",x:20,y:210,label:"Development goals",sub:"always private",kind:"conf",note:"Kept in the confidential store and never published."},
+   {id:"sc",x:605,y:210,label:"Goal score",sub:"avg capped attainment",kind:"core",note:"Capped (e.g. 0–150%), with lower-is-better targets inverted."},
+   {id:"ov",x:800,y:210,label:"Manager override",sub:"reason + notify",kind:"guard",note:"Both values are kept and nothing is overwritten silently."}],
+  edges:[["d","sub","submit"],["sub","pub","approved"],["sub","ret","changes"],["ret","d","edit"],["pub","ci"],["ci","cl"],["ci","sc"],["ci","ov","override"]]},
+ ai:{title:"AI assistance guardrails", desc:"AI helps people write SMART targets. It never sees confidential data and never decides anything.", w:1000,h:300, nodes:[
+   {id:"u",x:20,y:40,label:"User",sub:"Generate with AI",kind:"user",note:"Only available while users write their own goals."},
+   {id:"api",x:215,y:40,label:"API",sub:"allowed context",kind:"core",note:"The usual permission checks apply."},
+   {id:"ctx",x:410,y:40,label:"Context filter",sub:"own text + manager Method",kind:"guard",note:"Tier 1 context only."},
+   {id:"red",x:605,y:40,label:"Redaction",sub:"names · emails · IDs",kind:"guard",note:"Personal identifiers are stripped before anything leaves the system."},
+   {id:"gw",x:800,y:40,label:"AI gateway",sub:"template · rate limit",kind:"ai",note:"Fixed templates, and every call is logged."},
+   {id:"m",x:800,y:200,label:"AI model",sub:"no retention",kind:"ai",note:"Enterprise endpoint in a pinned region."},
+   {id:"out",x:605,y:200,label:"Output check",sub:"length · policy",kind:"guard",note:"Rejects anything that isn't a goal suggestion."},
+   {id:"sug",x:410,y:200,label:"Suggestion",sub:"labelled AI draft",kind:"core",note:"Shown separately from the user's own text."},
+   {id:"acc",x:215,y:200,label:"Accept / edit",sub:"saved as own text",kind:"user",note:"Nothing is saved without the user accepting it."},
+   {id:"blk",x:20,y:200,label:"Never sent",sub:"ratings · statuses · PIP",kind:"conf",note:"Excluded by design."}],
+  edges:[["u","api"],["api","ctx"],["ctx","red"],["red","gw"],["gw","m"],["m","out"],["out","sug"],["sug","acc"]]},
+ notify:{title:"Notifications", desc:"Reminders bring people into VMT. They never carry the content itself.", w:1000,h:330, nodes:[
+   {id:"cal",x:20,y:40,label:"Cycle calendar",sub:"3 check-ins + deadlines",kind:"data",note:"HR sets the windows."},
+   {id:"sch",x:215,y:40,label:"Scheduler",sub:"who still needs to act",kind:"core",note:"Only people with open tasks are reminded."},
+   {id:"ob",x:410,y:40,label:"Outbound worker",sub:"retry with backoff",kind:"core",note:"Queues and retries messages, and alerts on persistent failure."},
+   {id:"tpl",x:605,y:40,label:"Template",sub:"title + link only",kind:"guard",note:"Templates approved by HR. No ratings or goal text."},
+   {id:"ol",x:800,y:40,label:"Outlook",sub:"Microsoft Graph",kind:"ext",note:"Sent from a service mailbox."},
+   {id:"sl",x:800,y:250,label:"Slack",sub:"bot DM (post-pilot)",kind:"ext",note:"A bot with minimal permissions."},
+   {id:"lnk",x:605,y:250,label:"Deep link",sub:"opens the right page",kind:"core",note:"Opening it still needs sign-in."},
+   {id:"ok",x:410,y:250,label:"Okta sign-in",sub:"MFA",kind:"identity",note:"A forwarded link is useless to anyone else."},
+   {id:"pg",x:215,y:250,label:"VMT page",sub:"permission-checked",kind:"core",note:"Shows only what this viewer may see."}],
+  edges:[["cal","sch"],["sch","ob"],["ob","tpl"],["tpl","ol"],["tpl","sl"],["ol","lnk"],["sl","lnk"],["lnk","ok"],["ok","pg"]]},
+ audit:{title:"Audit & monitoring", desc:"Evidence of who saw or changed sensitive data.", w:1000,h:380, nodes:[
+   {id:"v",x:20,y:20,label:"Confidential views",sub:"Tier 3 reads",kind:"conf",note:"Viewer, subject, field and time."},
+   {id:"r",x:20,y:105,label:"Rating changes",sub:"every version",kind:"conf",note:"Full history of every rating change."},
+   {id:"o",x:20,y:190,label:"Overrides & roles",sub:"status · permissions",kind:"guard",note:"Status overrides, role grants and break-glass access."},
+   {id:"x",x:20,y:275,label:"Exports & admin",sub:"files · config",kind:"core",note:"Scope and row count for every export."},
+   {id:"log",x:300,y:150,label:"Audit log",sub:"append-only",kind:"guard",note:"Tamper-evident, and nobody can delete entries."},
+   {id:"siem",x:560,y:150,label:"SIEM",sub:"InfoSec",kind:"guard",note:"Correlated with Okta sign-in events."},
+   {id:"al",x:800,y:60,label:"Alerts",sub:"bulk views · big exports",kind:"conf",note:"Viewing more than N profiles in an hour, exports outside working hours, role grants."},
+   {id:"dsr",x:560,y:300,label:"Access report",sub:"employee data requests",kind:"data",note:"Shows who viewed an employee's confidential data."},
+   {id:"ret",x:800,y:240,label:"Retention",sub:"set with Legal (D11)",kind:"data",note:"Records are deleted automatically after the agreed period."}],
+  edges:[["v","log"],["r","log"],["o","log"],["x","log"],["log","siem","stream"],["siem","al"],["log","dsr","on request"],["siem","ret"]]},
+ export:{title:"Export (Excel / CSV)", desc:"Every extract is scoped, filtered, watermarked and logged.", w:1000,h:300, nodes:[
+   {id:"req",x:20,y:60,label:"Export request",sub:"HR / manager",kind:"user",note:"Exports come from the reporting screen, never from direct database access."},
+   {id:"role",x:215,y:60,label:"Role check",sub:"permission service",kind:"guard",note:"Only HR and Admin can export Tier 3."},
+   {id:"sc",x:410,y:60,label:"Scope filter",sub:"HR partner: own org",kind:"guard",note:"Rows are limited to the requester's org."},
+   {id:"tf",x:605,y:60,label:"Tier filter",sub:"drop disallowed fields",kind:"guard",note:"Disallowed columns are removed, not just hidden."},
+   {id:"f",x:800,y:60,label:"File",sub:"watermarked",kind:"core",note:"Carries the requester and a timestamp."},
+   {id:"ln",x:800,y:210,label:"Short-lived link",sub:"expires in 24h",kind:"core",note:"Downloading needs sign-in."},
+   {id:"lg",x:605,y:210,label:"Audit + SIEM",sub:"large exports alert",kind:"guard",note:"Logged with the row count."}],
+  edges:[["req","role"],["role","sc"],["sc","tf"],["tf","f"],["f","ln"],["ln","lg","download logged"]]},
+ talent:{title:"Juno & talent feeds", desc:"Two outbound feeds, each limited to an agreed data contract.", w:1000,h:290, nodes:[
+   {id:"dev",x:20,y:40,label:"Development plan",sub:"skills chosen",kind:"conf",note:"Stays private. The employee chooses which skills to share."},
+   {id:"tags",x:215,y:40,label:"Skill tags only",sub:"no goals, no ratings",kind:"guard",note:"Only the employee ID and skill tags leave VMT."},
+   {id:"ob",x:410,y:40,label:"Outbound worker",sub:"own credentials",kind:"core",note:"Every push is logged."},
+   {id:"juno",x:605,y:40,label:"Juno",sub:"learning platform",kind:"ext",note:"Returns learning items that match the skills."},
+   {id:"lk",x:800,y:40,label:"Learning links",sub:"on the dev plan",kind:"core",note:"Shown next to the goal."},
+   {id:"rel",x:20,y:200,label:"Released results",sub:"rating + goal score",kind:"conf",note:"Only after release."},
+   {id:"dc",x:215,y:200,label:"Data contract",sub:"agreed fields · DPIA",kind:"guard",note:"Signed off by HR, Legal and InfoSec."},
+   {id:"tmp",x:605,y:200,label:"Talent platform",sub:"HR leaders only",kind:"ext",note:"Not chosen yet (D10)."}],
+  edges:[["dev","tags"],["tags","ob"],["ob","juno"],["juno","lk"],["rel","dc"],["dc","ob"],["ob","tmp"]]},
+ platform:{title:"Environments & delivery", desc:"How the system is built and run safely.", w:1000,h:290, nodes:[
+   {id:"pr",x:20,y:40,label:"Prototype",sub:"Base44 · fake data",kind:"ext",note:"Used for UX exploration only. Real employee data never goes in."},
+   {id:"repo",x:215,y:40,label:"Code repo",sub:"Claude Code · reviews",kind:"core",note:"Built with Claude Code Enterprise in Cellebrite's own repo, with every change reviewed by a person."},
+   {id:"ci",x:410,y:40,label:"CI pipeline",sub:"tests · scans",kind:"guard",note:"Unit tests, permission matrix tests, code and dependency scans."},
+   {id:"dev",x:605,y:40,label:"Dev",sub:"synthetic data",kind:"data",note:"A fake org of about 1,200 people."},
+   {id:"stg",x:800,y:40,label:"Staging",sub:"UAT · pen test",kind:"data",note:"Mirrors production."},
+   {id:"prod",x:800,y:200,label:"Production",sub:"single region",kind:"core",note:"Reachable only through Okta, with infrastructure as code."},
+   {id:"vault",x:605,y:200,label:"Secrets vault",sub:"integration creds",kind:"guard",note:"Credentials rotated on a schedule."},
+   {id:"kms",x:410,y:200,label:"KMS keys",sub:"separate Tier 3 key",kind:"guard",note:"Every use of a key is logged."},
+   {id:"bk",x:215,y:200,label:"Backups",sub:"restore tested",kind:"data",note:"Point-in-time recovery, with a quarterly restore drill."},
+   {id:"mon",x:20,y:200,label:"Monitoring",sub:"uptime · errors",kind:"guard",note:"App health, sync failures and notification failures."}],
+  edges:[["pr","repo","screens as reference"],["repo","ci"],["ci","dev"],["dev","stg"],["stg","prod","approved release"],["vault","prod"],["kms","vault"]]}
+};
+const FLOW_LOGOS = {auth:{hb:"hibob",ok:"okta",grp:"okta",mfa:"okta"}, sync:{hb:"hibob"}, rating:{hb:"hibob"}, ai:{m:"claude"}, notify:{ol:"outlook",sl:"slack",ok:"okta"}, talent:{juno:"juno"}, platform:{pr:"base44",repo:"claude"}};
+Object.entries(FLOW_LOGOS).forEach(([f,m])=>FLOWS[f].nodes.forEach(n=>{ if(m[n.id]) n.logo=m[n.id]; }));
+
+/* ---------- Execution plan (phases & gates from the brief) ---------- */
+const PH = [
+ {n:1, name:"Discovery & decisions", start:"2026-11-09", end:"2026-11-27", owners:["HR product owner","Legal","Executive team"],
+  outputs:["Signed decision log","Legal opinion on privacy, all countries","Confirmed build scope & cost","Cloud account & region chosen"],
+  comps:["platform"], decisions:["D1","D2","D3","D4","D11","D13"],
+  gate:"All key decisions closed",
+  criteria:["Decision log signed by HR, Legal and the executive team","Hosting region approved by InfoSec","DPIA started, and the German works-council approach agreed","HR product owner and IT technical partner appointed","Budget, team and pilot success thresholds approved"]},
+ {n:2, name:"Detailed spec & UX", start:"2026-11-16", end:"2026-12-04", owners:["Product owner","UX designer"],
+  outputs:["Requirements per module","Data & permissions model","Prototypes: search, org tree","Manager team view & HR screens"],
+  comps:["webui","perm","maindb","conf"], decisions:["D5","D6","D7","D8","D12"],
+  gate:"HR & executives approve spec and design",
+  criteria:["Permission matrix signed off by HR and InfoSec","Target data model (baseline / target / actual) agreed","Prototype tested with 5–8 employees and managers","Data contracts drafted for HiBob and Okta"]},
+ {n:3, name:"Architecture & development", start:"2026-11-30", end:"2027-01-08", owners:["Development team"],
+  outputs:["Environments & platform skeleton","MVP: Vision, Methods, Targets, check-ins","Annual review module","Audit log & permission service"],
+  comps:["platform","okta","sync","api","perm","maindb","conf","webui","audit"], decisions:[],
+  gate:"Stable MVP that enforces permission rules",
+  criteria:["Every permission matrix test passing in CI","HiBob sync running daily in staging","Every Tier 3 read captured in the audit log","Infrastructure as code only, with no manual changes"]},
+ {n:4, name:"Testing & integration", start:"2027-01-04", end:"2027-01-22", owners:["QA","IT","InfoSec"],
+  outputs:["HiBob sync & Okta SSO live","Permission & load tests","UAT with real users","Penetration test"],
+  comps:["hibob","okta","outlook","siem","export"], decisions:[],
+  gate:"No open critical defects; security sign-off",
+  criteria:["No open critical or high pen-test findings","Load test passed for 1,200 users at 3× peak","HR signs off UAT","SIEM alerts verified end to end"]},
+ {n:5, name:"Pre-launch pilot", start:"2027-01-18", end:"2027-02-05", owners:["HR","Department heads"],
+  outputs:["2–3 pilot departments","One live cycle: goals + check-in","Defect log & feedback","Go / no-go pack"],
+  comps:["outbound","outlook","webui"], decisions:[],
+  gate:"Pilot success metrics met — Go / No-Go",
+  criteria:["At least 90% of pilot employees publish goals","At least 80% complete the check-in","Zero permission incidents","Manager satisfaction at or above the agreed threshold"], proposed:true},
+ {n:6, name:"Launch & rollout", start:"2027-02-08", end:"2027-02-26", owners:["HR","IT"],
+  outputs:["Phased waves by country","Manager training","Support channel","Executive reports"],
+  comps:["slack","outbound"], decisions:["D9","D10"],
+  gate:"Whole company in cycle; annual review ready before its window",
+  criteria:["All waves live, with Germany subject to the works council","At least 95% of managers trained","Support SLA met","Year-end module tested before its window opens"]}
+];
+const WS = [
+ {name:"Legal & privacy", start:"2026-11-09", end:"2027-02-05", label:"DPIA · works council · retention"},
+ {name:"HiBob & Okta integration", start:"2026-12-07", end:"2027-01-22", label:"sync · SSO · provisioning"},
+ {name:"Change & training", start:"2026-12-14", end:"2027-02-26", label:"comms · manager training · support"},
+ {name:"Post-launch: AI · Juno · Talent platform", start:"2027-02-15", end:"2027-03-01", label:"Q2 2027 →", later:true}
+];
+
+/* ---------- Helpers ---------- */
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t); for(const k in a) e.setAttribute(k,a[k]); if(p) p.appendChild(e); return e;};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const kcol=k=>`var(${KINDS[k].v})`;
+function wrap(t,max){ if(t.length<=max) return [t]; const w=t.split(" "); let a="",lines=[]; for(const x of w){ if((a+" "+x).trim().length>max && a){lines.push(a); a=x;} else a=(a+" "+x).trim(); } lines.push(a); return lines.slice(0,2); }
+const tileHTML=(c,cls)=> c.logo? `<img src="${LOGOS[c.logo]}" alt="">` : icon(c.icon||"layers", kcol(c.kind));
+document.getElementById("clbMark").src=LOGOS.cellebrite;
+
+function defs(svg){
+  const d=el("defs",{},svg);
+  [["arr","var(--edge)"],["arr-conf","var(--k-conf)"],["arr-hi","var(--red)"]].forEach(([id,f])=>{
+    const m=el("marker",{id:svg.id+"-"+id, viewBox:"0 0 10 10", refX:"9", refY:"5", markerWidth:"7", markerHeight:"7", orient:"auto-start-reverse"},d);
+    el("path",{d:"M0,0 L10,5 L0,10 z", style:"fill:"+f},m);
+  });
+  const st=el("style",{},svg);
+  st.textContent=`#${svg.id} .edge path{marker-end:url(#${svg.id}-arr)} #${svg.id} .edge.conf path{marker-end:url(#${svg.id}-arr-conf)} #${svg.id} .edge.on path{marker-end:url(#${svg.id}-arr-hi)}`;
+}
+function drawNode(svg,n,opts={}){
+  const w=n.w||170, h=n.h||62, x=n.x, y=n.y, r=12, col=kcol(n.kind);
+  const g=el("g",{class:"node", tabindex:"0", role:"button", "data-id":n.id, "aria-label":`${n.label}: ${n.sub||""}`},svg);
+  el("rect",{class:"nbg", x, y, width:w, height:h, rx:r, style:`fill:color-mix(in srgb, ${col} 9%, #fff); stroke:${col}`},g);
+  el("path",{d:`M${x+r},${y} H${x+6} V${y+h} H${x+r} A${r} ${r} 0 0 1 ${x} ${y+h-r} V${y+r} A${r} ${r} 0 0 1 ${x+r} ${y} Z`, style:`fill:${col}`},g);
+  let tx=x+16;
+  if(n.logo && LOGOS[n.logo]){
+    const ts=30, ty=y+(h-ts)/2;
+    el("rect",{class:"logo-tile", x:x+13, y:ty, width:ts, height:ts, rx:8},g);
+    el("image",{href:LOGOS[n.logo], x:x+16, y:ty+3, width:ts-6, height:ts-6, preserveAspectRatio:"xMidYMid meet"},g);
+    tx=x+52;
+  } else if(opts.icon && n.icon){
+    const ts=28, ty=y+(h-ts)/2;
+    el("rect",{x:x+14, y:ty, width:ts, height:ts, rx:8, style:`fill:#fff; stroke:color-mix(in srgb, ${col} 35%, #fff)`},g);
+    const s=el("svg",{x:x+19, y:ty+5, width:18, height:18, viewBox:"0 0 24 24", fill:"none", stroke:col, "stroke-width":"2.2", "stroke-linecap":"round", "stroke-linejoin":"round"},g);
+    s.innerHTML=IC[n.icon]||"";
+    tx=x+50;
+  }
+  const lab=el("text",{class:"nl", x:tx, y:y+24},g); lab.textContent=n.label;
+  const subs=wrap(n.sub||"", Math.floor((w-(tx-x)-8)/5.7));
+  subs.forEach((s,i)=>{ const t=el("text",{class:"ns", x:tx, y:y+41+i*13},g); t.textContent=s; });
+  if(opts.later){ el("rect",{class:"later-pill", x:x+w-50, y:y+7, width:42, height:15, rx:7.5},g); const t=el("text",{class:"later-t", x:x+w-29, y:y+18, "text-anchor":"middle"},g); t.textContent="LATER"; }
+  return g;
+}
+function rectPt(n,tx,ty){ const w=n.w||170,h=n.h||62, cx=n.x+w/2, cy=n.y+h/2, dx=tx-cx, dy=ty-cy; if(!dx&&!dy) return [cx,cy]; const s=Math.min(dx?(w/2)/Math.abs(dx):1e9, dy?(h/2)/Math.abs(dy):1e9); return [cx+dx*s, cy+dy*s]; }
+const center=n=>[n.x+(n.w||170)/2, n.y+(n.h||62)/2];
+
+/* ---------- Hero decoration ---------- */
+(function(){
+  /* Animated network background: same behaviour as ai-readiness.amconsultingai.com (NetworkBg) */
+  (function(){
+    const canvas=document.getElementById("netBg"); if(!canvas||!canvas.getContext) return;
+    const ctx=canvas.getContext("2d"); let w,h,dpr,nodes,raf; const mouse={x:-9999,y:-9999}; const MAXD=145, MOUSE_D=150;
+    const still=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function resize(){ dpr=Math.min(window.devicePixelRatio||1,2); w=canvas.clientWidth; h=canvas.clientHeight; canvas.width=w*dpr; canvas.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+      const count=Math.max(24,Math.min(70,Math.floor((w*h)/26000)));
+      nodes=Array.from({length:count},()=>({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,r:Math.random()*1.3+1,accent:Math.random()<.07})); }
+    function draw(move){ ctx.clearRect(0,0,w,h);
+      if(move) for(const n of nodes){ n.x+=n.vx; n.y+=n.vy; if(n.x<0||n.x>w) n.vx*=-1; if(n.y<0||n.y>h) n.vy*=-1; }
+      for(let i=0;i<nodes.length;i++){ const a=nodes[i];
+        for(let j=i+1;j<nodes.length;j++){ const b=nodes[j]; const d=Math.hypot(a.x-b.x,a.y-b.y);
+          if(d<MAXD){ ctx.strokeStyle=`rgba(27,33,61,${(1-d/MAXD)*.08})`; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); } }
+        const md=Math.hypot(a.x-mouse.x,a.y-mouse.y);
+        if(md<MOUSE_D){ ctx.strokeStyle=`rgba(226,19,19,${(1-md/MOUSE_D)*.14})`; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(mouse.x,mouse.y); ctx.stroke(); } }
+      for(const n of nodes){ ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fillStyle=n.accent?"rgba(226,19,19,0.32)":"rgba(27,33,61,0.26)"; ctx.fill(); } }
+    function frame(){ draw(true); raf=requestAnimationFrame(frame); }
+    resize();
+    if(still){ draw(false); window.addEventListener("resize",()=>{ resize(); draw(false); }); return; }
+    frame();
+    window.addEventListener("resize",resize);
+    window.addEventListener("mousemove",e=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
+    window.addEventListener("mouseout",()=>{ mouse.x=-9999; mouse.y=-9999; });
+    document.addEventListener("visibilitychange",()=>{ cancelAnimationFrame(raf); if(!document.hidden) frame(); });
+  })();
+  // targets with progress bars in the VMT card
+  const tg=document.getElementById("tg"); const xs=[20,165,310]; const prog=[[.9,.6],[.75,.4,1],[.55,.85]];
+  xs.forEach((x,i)=>prog[i].forEach((p,k)=>{ const y=222+k*26;
+    el("rect",{x,y,width:130,height:20,rx:10,fill:"rgba(255,255,255,.07)"},tg);
+    el("text",{x:x+10,y:y+14,fill:"rgba(255,255,255,.85)","font-size":"11","font-weight":"700"},tg).textContent="T"+(k+1);
+    el("rect",{x:x+30,y:y+8,width:88,height:5,rx:2.5,fill:"rgba(255,255,255,.18)"},tg);
+    el("rect",{x:x+30,y:y+8,width:88*p,height:5,rx:2.5,fill:p>=.75?"#7ee2a8":p>=.5?"#ffd166":"#ff8a8a"},tg);
+  }));
+})();
+
+/* ---------- Principles & context ---------- */
+const PRIN=[["cloud","Runs in Cellebrite's cloud","Dedicated account, separate from product and FedRAMP."],
+ ["shield","Deny by default","One permission service checks every request."],
+ ["lock","Confidential stays separate","Own store, own key, every read logged."],
+ ["eye","Transparent by default","Goals open to everyone. Ratings private."],
+ ["link","Minimal integrations","Links, not content. Agreed fields only."],
+ ["spark","AI drafts, never decides","No AI in ratings, scores or statuses."],
+ ["target","Measured, not declared","Status and score calculated from actuals."],
+ ["award","Audit-ready from day one","Inside the ISO 27001 and SOC 2 scope."]];
+document.getElementById("principles").innerHTML=PRIN.map(([i,t,d])=>`<div class="tile"><div class="ic">${icon(i)}</div><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`).join("");
+const SPLIT=[["Israel",49,"#1B213D"],["US",30,"#2f5bd3"],["UK",5,"#E21313"],["Singapore",3,"#0f8a7e"],["Germany",2,"#c26a00"],["Other",11,"#d6e0f1"]];
+document.getElementById("stack").innerHTML=SPLIT.map(([n,p,c])=>`<i style="width:${p}%;background:${c}" title="${n} ${p}%"></i>`).join("");
+document.getElementById("stackLegend").innerHTML=SPLIT.map(([n,p,c])=>`<span><i style="background:${c}"></i>${n} ${p}%</span>`).join("");
+document.getElementById("certs").innerHTML=[["ISO 27001","2022"],["ISO 27017","cloud security"],["SOC 2 Type II","annual"],["FedRAMP","gov cloud program"]].map(([a,b])=>`<div class="cert">${icon("checkc")}<div>${a}<small>${b}</small></div></div>`).join("");
+document.getElementById("sysLogos").innerHTML=[["hibob","HiBob"],["okta","Okta"],["outlook","Outlook"],["slack","Slack"],["juno","Juno"],["claude","Claude"]].map(([k,n])=>`<div><img src="${LOGOS[k]}" alt="">${n}</div>`).join("");
+
+/* ---------- Main diagram ---------- */
+const svg=document.getElementById("main");
+defs(svg);
+const zone=el("g",{id:"cloudZone"},svg);
+el("rect",{class:"cloud-zone", x:260,y:196,width:680,height:524,rx:18},zone);
+el("path",{class:"cloud-tab", d:"M260,216 Q260,170 278,170 H528 Q540,170 540,182 V196 H260 Z"},zone);
+el("rect",{x:268,y:174,width:20,height:20,rx:5,fill:"#fff"},zone);
+el("image",{href:LOGOS.cellebrite, x:270,y:176,width:16,height:16},zone);
+el("text",{class:"cloud-tab-t", x:296,y:189},zone).textContent="CELLEBRITE CLOUD · VMT account";
+el("text",{class:"boundary-t", x:924,y:708,"text-anchor":"end"},zone).textContent="Built, hosted and operated by Cellebrite · single region";
+el("text",{class:"colhead", x:1075,y:228,"text-anchor":"middle"},svg).textContent="OUTSIDE · VENDOR SaaS";
+el("text",{class:"colhead", x:125,y:590,"text-anchor":"middle"},svg).textContent="OUTSIDE · VENDOR SaaS";
+const edgeEls=[];
+E.forEach(e=>{
+  const g=el("g",{class:"edge"+(e.conf?" conf":""), "data-from":e.from, "data-to":e.to},svg);
+  el("path",{d:"M"+e.pts.map(p=>p.join(",")).join(" L")},g);
+  if(e.label){ el("text",{x:e.lx,y:e.ly,"text-anchor":e.anchor||"middle"},g).textContent=e.label; }
+  edgeEls.push({e,g});
+});
+const nodeEls={};
+C.forEach(c=>{ nodeEls[c.id]=drawNode(svg,c,{later:c.phase==="Post-pilot", icon:true}); });
+document.getElementById("legend").innerHTML = Object.entries(KINDS).map(([k,v])=>`<span><i class="sw" style="background:var(${v.v})"></i>${v.label}</span>`).join("")
+  + `<span><i class="sw" style="border:2px dashed var(--navy)"></i>Cellebrite cloud</span><span><i class="lg-line"></i>Data flow</span><span><i class="lg-line conf"></i>Confidential flow</span>`;
+
+function neighbours(id){ const s=new Set([id]); edgeEls.forEach(({e})=>{ if(e.from===id||e.to===id){ s.add(e.from); s.add(e.to);} }); return s; }
+function hl(id){ svg.classList.add("hovering"); const nb=neighbours(id);
+  Object.entries(nodeEls).forEach(([k,g])=>g.classList.toggle("on",nb.has(k)));
+  edgeEls.forEach(({e,g})=>g.classList.toggle("on", e.from===id||e.to===id)); }
+function unhl(){ svg.classList.remove("hovering"); Object.values(nodeEls).forEach(g=>g.classList.remove("on")); edgeEls.forEach(({g})=>g.classList.remove("on")); }
+Object.entries(nodeEls).forEach(([id,g])=>{
+  g.addEventListener("mouseenter",()=>hl(id)); g.addEventListener("mouseleave",unhl);
+  g.addEventListener("focus",()=>hl(id)); g.addEventListener("blur",unhl);
+  g.addEventListener("click",()=>openCard(id));
+  g.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openCard(id);} });
+});
+
+let phase="all";
+function applyFilters(){
+  const q=document.getElementById("search").value.trim().toLowerCase();
+  const confOn=document.getElementById("confToggle").checked, cloudOn=document.getElementById("cloudToggle").checked;
+  C.forEach(c=>{ let vis=true;
+    if(phase!=="all" && c.phase!==phase) vis=false;
+    if(confOn && !CONF_PATH.has(c.id)) vis=false;
+    if(cloudOn && c.host!=="cloud") vis=false;
+    if(q){ const hay=[c.label,c.sub,c.purpose,...c.data,...c.controls,...c.questions,KINDS[c.kind].label].join(" ").toLowerCase(); if(!hay.includes(q)) vis=false; }
+    nodeEls[c.id].classList.toggle("dim",!vis); nodeEls[c.id].dataset.vis=vis?"1":"0"; });
+  edgeEls.forEach(({e,g})=>g.classList.toggle("dim", !(nodeEls[e.from].dataset.vis==="1" && nodeEls[e.to].dataset.vis==="1")));
+}
+["search"].forEach(id=>document.getElementById(id).addEventListener("input",applyFilters));
+["confToggle","cloudToggle"].forEach(id=>document.getElementById(id).addEventListener("change",applyFilters));
+document.getElementById("animToggle").addEventListener("change",ev=>svg.classList.toggle("animate",ev.target.checked));
+document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ phase=b.dataset.phase; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); applyFilters(); }));
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  document.getElementById("search").value=""; ["confToggle","cloudToggle","animToggle"].forEach(i=>document.getElementById(i).checked=false);
+  svg.classList.remove("animate"); phase="all"; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.phase==="all"))); applyFilters(); });
+
+/* ---------- Pop-up card ---------- */
+const dlg=document.getElementById("cardDlg");
+let selId=null;
+function decText(s){ return esc(s).replace(/\(?(D\d+)(?:, (D\d+))?\)?/g,(m,a,b)=>`<span class="dpill" title="${esc(DEC[a]||"")}">${a}</span>${b?`<span class="dpill" title="${esc(DEC[b]||"")}">${b}</span>`:""}`); }
+function hostChip(c){ return `<span class="chip ${c.host==="cloud"?"cloud":""}">${c.host==="cloud"?`<img src="${LOGOS.cellebrite}" alt="" style="background:#fff;padding:1px">`:icon("cloud")}${esc(HOST[c.host].label)}</span>`.replace('<svg ','<svg width="15" height="15" '); }
+function miniMap(c){
+  const nb=[]; edgeEls.forEach(({e})=>{ if(e.from===c.id) nb.push([e.to,"out"]); else if(e.to===c.id) nb.push([e.from,"in"]); });
+  const W=360,H=260,cx=W/2,cy=H/2; let out=`<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="Connections of ${esc(c.label)}"><defs><marker id="mm-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a3abbb"/></marker></defs>`;
+  const n=nb.length||1; const pos=nb.map((x,i)=>{ const a=-Math.PI/2+i*2*Math.PI/n; return [cx+Math.cos(a)*128, cy+Math.sin(a)*92]; });
+  nb.forEach(([id,dir],i)=>{ const [x,y]=pos[i]; const dx=x-cx, dy=y-cy, L=Math.hypot(dx,dy); const sx=cx+dx/L*40, sy=cy+dy/L*40, ex=x-dx/L*22, ey=y-dy/L*16;
+    out+= dir==="out" ? `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="#a3abbb" stroke-width="1.6" marker-end="url(#mm-a)"/>` : `<line x1="${ex}" y1="${ey}" x2="${sx}" y2="${sy}" stroke="#a3abbb" stroke-width="1.6" marker-end="url(#mm-a)"/>`; });
+  out+=`<circle cx="${cx}" cy="${cy}" r="38" fill="#fff" stroke="${kcol(c.kind)}" stroke-width="3"/>`;
+  out+= c.logo? `<image href="${LOGOS[c.logo]}" x="${cx-20}" y="${cy-20}" width="40" height="40"/>` : `<svg x="${cx-17}" y="${cy-17}" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="${kcol(c.kind)}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[c.icon]||IC.layers}</svg>`;
+  nb.forEach(([id],i)=>{ const [x,y]=pos[i]; const lab=CM[id].label; const w=Math.max(70,lab.length*6.6+22);
+    out+=`<g class="mn" tabindex="0" role="button" data-go="${id}" aria-label="Open ${esc(lab)}"><rect x="${x-w/2}" y="${y-14}" width="${w}" height="28" rx="14"/><text x="${x}" y="${y+4}" text-anchor="middle">${esc(lab)}</text></g>`; });
+  if(!nb.length) out+=`<text x="${cx}" y="${cy+62}" text-anchor="middle" font-size="12" font-weight="700" fill="rgba(27,33,61,.55)">Shared by every component</text>`;
+  return out+"</svg>";
+}
+function openCard(id){
+  const c=CM[id]; if(!c) return;
+  if(selId&&nodeEls[selId]) nodeEls[selId].classList.remove("sel"); selId=id; nodeEls[id].classList.add("sel");
+  const kc=kcol(c.kind), idx=ORDER.indexOf(id), f=FLOWS[c.flow];
+  const io=c.data.map(s=>{ const m=s.match(/^(In|Out)(?: \(read only\))?: (.*)$/); const dir=m?m[1]:null; const txt=m?m[2]:s;
+    return `<div><i>${icon(dir==="In"?"down":dir==="Out"?"up":"info", dir==="In"?"var(--k-guard)":dir==="Out"?"var(--k-core)":"var(--navy-55)",2.4)}</i><span>${dir?`<b>${dir} · </b>`:""}${esc(txt)}</span></div>`; }).join("");
+  dlg.style.setProperty("--kc",kc);
+  dlg.innerHTML=`
+   <div class="cd-hero" style="--kc:${kc}">
+     <div class="cd-ico">${c.logo?`<img src="${LOGOS[c.logo]}" alt="${esc(c.label)} logo">`:icon(c.icon||"layers",kc,1.8)}</div>
+     <div>
+       <div class="cd-kind" style="color:${kc}">${esc(KINDS[c.kind].label)}</div>
+       <h3 id="cardTitle">${esc(c.label)}</h3>
+       <div class="sub">${esc(c.sub)}</div>
+       <div class="chips">${hostChip(c)}<span class="chip">${icon("users").replace('<svg ','<svg width="15" height="15" ')}${esc(c.owner)}</span></div>
+     </div>
+     <button class="round-btn x-btn" type="button" data-close aria-label="Close">${icon("x")}</button>
+   </div>
+   <div class="cd-body">
+     <div>
+       <div class="label">What it does</div>
+       <p class="cd-purpose">${esc(c.purpose)}</p>
+       <div class="label">Data it touches</div>
+       <div class="tiers">${TIERS.map(([t,cl,n,lab])=>`<div class="tier ${cl} ${c.tiers.includes(t)?"on":""}"><b>${lab}</b>${n}</div>`).join("")}</div>
+       <div class="label">Data in / out</div>
+       <div class="io">${io}</div>
+     </div>
+     <div>
+       <div class="label">Connections · click to jump</div>
+       <div class="map">${miniMap(c)}</div>
+       <div class="label">Delivery</div>
+       <div class="track"><span class="${c.phase==="MVP"?"on":""}">MVP · Feb 2027</span><span class="${c.phase!=="MVP"?"on":""}">Post-pilot · Q2 2027</span></div>
+     </div>
+   </div>
+   <div class="cd-wide">
+     <div class="label">Safety controls</div>
+     <div class="ctrl-grid">${c.controls.map(x=>`<div>${icon("shield")}<span>${esc(x)}</span></div>`).join("")}</div>
+     <div class="label">Open questions</div>
+     <div class="qs">${c.questions.map(x=>`<div><i>?</i><span>${decText(x)}</span></div>`).join("")}</div>
+   </div>
+   <div class="cd-foot">
+     <button class="round-btn" type="button" data-nav="-1" aria-label="Previous component">${icon("left")}</button>
+     <button class="round-btn" type="button" data-nav="1" aria-label="Next component">${icon("right")}</button>
+     <span class="pos">${idx+1} / ${ORDER.length}</span>
+     <span class="sp"></span>
+     ${f?`<button class="pill-btn sm" type="button" data-flow="${c.flow}"><span class="dot">${icon("arrow")}</span>Open flow: ${esc(f.title)}</button>`:""}
+   </div>`;
+  if(!dlg.open) dlg.showModal();
+  dlg.scrollTop=0; dlg.dataset.mode="c"; dlg.dataset.id=id;
+  history.replaceState(null,"","#c/"+id);
+}
+function openPhase(n){
+  const p=PH.find(x=>x.n===n); if(!p) return;
+  const d1=new Date(p.start+"T00:00:00"), d2=new Date(p.end+"T00:00:00"); const wk=Math.round((d2-d1)/864e5/7*10)/10;
+  dlg.style.setProperty("--kc","var(--red)");
+  dlg.innerHTML=`
+   <div class="cd-hero" style="--kc:var(--red)">
+     <div class="ph-num">${p.n}</div>
+     <div>
+       <div class="cd-kind" style="color:var(--red)">Phase ${p.n} of 6 · Gate G${p.n}</div>
+       <h3 id="cardTitle">${esc(p.name)}</h3>
+       <div class="sub">${fmt(d1)} – ${fmt(d2)} ${d2.getFullYear()} · ~${wk} weeks</div>
+       <div class="chips">${p.owners.map(o=>`<span class="chip">${icon("users").replace('<svg ','<svg width="15" height="15" ')}${esc(o)}</span>`).join("")}</div>
+     </div>
+     <button class="round-btn x-btn" type="button" data-close aria-label="Close">${icon("x")}</button>
+   </div>
+   <div class="cd-body">
+     <div>
+       <div class="label">Key outputs</div>
+       <div class="outputs">${p.outputs.map(o=>`<div>${icon("checkc")}<span>${esc(o)}</span></div>`).join("")}</div>
+       <div class="label">Components delivered or connected</div>
+       <div class="chips">${p.comps.map(id=>{const c=CM[id]; return `<button class="chip btn" type="button" data-go="${id}">${c.logo?`<img src="${LOGOS[c.logo]}" alt="">`:icon(c.icon||"layers",kcol(c.kind)).replace('<svg ','<svg width="15" height="15" ')}${esc(c.label)}</button>`;}).join("")}</div>
+       <div class="label">Decisions to close</div>
+       ${p.decisions.length? `<div class="qs">${p.decisions.map(d=>`<div><i>${d.slice(1)}</i><span><b>${d}</b> · ${esc(DEC[d])}</span></div>`).join("")}</div>` : `<p style="color:var(--navy-55);font-weight:600">None. All decisions should already be closed.</p>`}
+     </div>
+     <div>
+       <div class="gatebox">
+         <div class="gt"><i>${icon("flag")}</i><span>Gate G${p.n}<br><span style="font-size:16px;font-weight:700;color:rgba(255,255,255,.85)">${esc(p.gate)}</span></span></div>
+         <ul>${p.criteria.map(x=>`<li>${icon("check")}<span>${esc(x)}</span></li>`).join("")}</ul>
+         ${p.proposed?`<div class="note">Thresholds are proposals for HR to confirm at Gate 1.</div>`:`<div class="note">Gate text from the original brief. Criteria proposed by AM Consulting.</div>`}
+       </div>
+     </div>
+   </div>
+   <div class="cd-foot">
+     <button class="round-btn" type="button" data-pnav="-1" aria-label="Previous phase">${icon("left")}</button>
+     <button class="round-btn" type="button" data-pnav="1" aria-label="Next phase">${icon("right")}</button>
+     <span class="pos">Phase ${p.n} / 6</span><span class="sp"></span>
+     <a class="pill-btn sm" href="#plan" data-close><span class="dot">${icon("calendar")}</span>Back to plan</a>
+   </div>`;
+  if(!dlg.open) dlg.showModal();
+  dlg.scrollTop=0; dlg.dataset.mode="p"; dlg.dataset.id=n;
+  history.replaceState(null,"","#p/"+n);
+}
+dlg.addEventListener("click",ev=>{
+  if(ev.target===dlg){ dlg.close(); return; }
+  const t=ev.target.closest("[data-close],[data-go],[data-nav],[data-pnav],[data-flow]"); if(!t) return;
+  if(t.hasAttribute("data-close")){ dlg.close(); return; }
+  if(t.dataset.go){ openCard(t.dataset.go); return; }
+  if(t.dataset.nav){ const i=ORDER.indexOf(dlg.dataset.id); openCard(ORDER[(i+Number(t.dataset.nav)+ORDER.length)%ORDER.length]); return; }
+  if(t.dataset.pnav){ const n=((Number(dlg.dataset.id)-1+Number(t.dataset.pnav)+6)%6)+1; openPhase(n); return; }
+  if(t.dataset.flow){ dlg.close(); openFlow(t.dataset.flow); }
+});
+dlg.addEventListener("keydown",ev=>{
+  const g=ev.target.closest&&ev.target.closest(".mn"); if(g&&(ev.key==="Enter"||ev.key===" ")){ ev.preventDefault(); openCard(g.dataset.go); return; }
+  if(ev.key==="ArrowRight"||ev.key==="ArrowLeft"){ const d=ev.key==="ArrowRight"?1:-1;
+    if(dlg.dataset.mode==="c"){ const i=ORDER.indexOf(dlg.dataset.id); openCard(ORDER[(i+d+ORDER.length)%ORDER.length]); }
+    else { openPhase(((Number(dlg.dataset.id)-1+d+6)%6)+1); } }
+});
+dlg.addEventListener("close",()=>{ if(selId&&nodeEls[selId]) nodeEls[selId].classList.remove("sel"); selId=null; history.replaceState(null,"",location.pathname+location.search); });
+
+/* ---------- Flow dialog ---------- */
+const fdlg=document.getElementById("flowDlg"), fSvg=document.getElementById("fSvg");
+function openFlow(key){
+  const F=FLOWS[key]; if(!F) return;
+  document.getElementById("fTitle").textContent=F.title; document.getElementById("fDesc").textContent=F.desc;
+  while(fSvg.firstChild) fSvg.removeChild(fSvg.firstChild);
+  fSvg.setAttribute("viewBox",`0 0 ${F.w} ${F.h}`); fSvg.setAttribute("aria-label",F.title+" diagram");
+  defs(fSvg);
+  const NM=Object.fromEntries(F.nodes.map(n=>[n.id,n])); const gE=[];
+  F.edges.forEach(([a,b,lab,bend])=>{ let label=lab;
+    const A=NM[a],B=NM[b], ca=center(A), cb=center(B);
+    const g=el("g",{class:"edge"+((A.kind==="conf"||B.kind==="conf")?" conf":"")},fSvg); let d,lx,ly;
+    if(bend){ const mx=(ca[0]+cb[0])/2,my=(ca[1]+cb[1])/2,dx=cb[0]-ca[0],dy=cb[1]-ca[1],L=Math.hypot(dx,dy)||1, qx=mx+(-dy/L)*bend*1.6, qy=my+(dx/L)*bend*1.6;
+      const s=rectPt(A,qx,qy), e=rectPt(B,qx,qy); d=`M${s[0]},${s[1]} Q${qx},${qy} ${e[0]},${e[1]}`; lx=.25*s[0]+.5*qx+.25*e[0]; ly=.25*s[1]+.5*qy+.25*e[1]; }
+    else { const s=rectPt(A,cb[0],cb[1]), e=rectPt(B,ca[0],ca[1]); d=`M${s[0]},${s[1]} L${e[0]},${e[1]}`; lx=(s[0]+e[0])/2; ly=(s[1]+e[1])/2-6; if(Math.hypot(e[0]-s[0],e[1]-s[1])<80) label=""; }
+    el("path",{d},g); if(label) el("text",{x:lx,y:ly,"text-anchor":"middle"},g).textContent=label;
+    gE.push({a,b,g}); });
+  const gN={};
+  F.nodes.forEach(n=>{ const g=drawNode(fSvg,n); gN[n.id]=g; const act=()=>selectStep(n.id);
+    g.addEventListener("click",act); g.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ev.preventDefault(); act();} });
+    g.addEventListener("mouseenter",()=>{ fSvg.classList.add("hovering"); g.classList.add("on"); gE.forEach(x=>{ if(x.a===n.id||x.b===n.id){ x.g.classList.add("on"); gN[x.a].classList.add("on"); gN[x.b]&&gN[x.b].classList.add("on"); } }); });
+    g.addEventListener("mouseleave",()=>{ fSvg.classList.remove("hovering"); Object.values(gN).forEach(x=>x.classList.remove("on")); gE.forEach(x=>x.g.classList.remove("on")); }); });
+  fSvg._n=gN; fSvg._m=NM;
+  document.getElementById("fSteps").innerHTML=F.nodes.map(n=>`<li><button type="button" data-step="${n.id}">${esc(n.label)}</button> <span>— ${esc(n.note)}</span></li>`).join("");
+  document.getElementById("fNote").innerHTML=`<b>Click a step</b>Select any box in the diagram or any step below.`;
+  if(!fdlg.open) fdlg.showModal(); fdlg.scrollTop=0;
+  history.replaceState(null,"","#f/"+key);
+}
+function selectStep(id){ const n=fSvg._m[id]; Object.entries(fSvg._n).forEach(([k,g])=>g.classList.toggle("sel",k===id));
+  const box=document.getElementById("fNote"); box.style.borderLeftColor=kcol(n.kind);
+  box.innerHTML=`<b>${esc(n.label)} <span style="font-weight:600;color:var(--navy-55)">· ${esc(n.sub)}</span></b>${esc(n.note)}`; }
+document.getElementById("fSteps").addEventListener("click",ev=>{ const b=ev.target.closest("[data-step]"); if(b) selectStep(b.dataset.step); });
+document.getElementById("fClose").addEventListener("click",()=>fdlg.close());
+fdlg.addEventListener("click",ev=>{ if(ev.target===fdlg) fdlg.close(); });
+fdlg.addEventListener("close",()=>history.replaceState(null,"",location.pathname+location.search));
+
+/* ---------- Hosting / components / flows / tables ---------- */
+const hitem=c=>`<button class="hitem" type="button" data-open="${c.id}"><span class="ti">${tileHTML(c).replace('<svg ','<svg width="17" height="17" ')}</span>${esc(c.label)}</button>`;
+const inCloud=ORDER.map(i=>CM[i]).filter(c=>c.host==="cloud"), saas=ORDER.map(i=>CM[i]).filter(c=>c.host==="saas"), other=ORDER.map(i=>CM[i]).filter(c=>!["cloud","saas"].includes(c.host));
+document.getElementById("hostGrid").innerHTML=`
+  <div class="panel hostcol cloud"><h3><img src="${LOGOS.cellebrite}" alt="">Inside Cellebrite cloud <span style="margin-left:auto;font-size:30px">${inCloud.length}</span></h3><div class="hostitems">${inCloud.map(hitem).join("")}</div></div>
+  <div class="panel hostcol"><h3>${icon("cloud").replace('<svg ','<svg width="24" height="24" ')}Vendor SaaS <span style="margin-left:auto;font-size:30px">${saas.length}</span></h3><div class="hostitems">${saas.map(hitem).join("")}</div></div>
+  <div class="panel hostcol"><h3>${icon("info").replace('<svg ','<svg width="24" height="24" ')}Other <span style="margin-left:auto;font-size:30px">${other.length}</span></h3><div class="hostitems">${other.map(c=>hitem(c).replace("</button>",`<small style="margin-left:auto;font-weight:600;color:var(--navy-55);font-size:12.5px">${esc(HOST[c.host].label)}</small></button>`)).join("")}</div></div>`;
+document.getElementById("compGrid").innerHTML=ORDER.map(id=>{const c=CM[id]; return `<button class="ctile" type="button" data-open="${id}" style="--kc:${kcol(c.kind)}">
+  <div class="top"><span class="ti">${tileHTML(c)}</span><div><h3>${esc(c.label)}</h3><div class="s">${esc(c.sub)}</div></div></div>
+  <p>${esc(c.purpose)}</p>
+  <div class="meta"><span class="mini ${c.host==="cloud"?"cloud":""}">${c.host==="cloud"?"Cellebrite cloud":c.host==="saas"?"Vendor SaaS":esc(HOST[c.host].label)}</span><span class="mini">${esc(c.phase)}</span><span class="tdots" title="Data tiers">${[1,2,3].map(t=>`<i class="${c.tiers.includes(t)?"t"+t:""}"></i>`).join("")}</span></div></button>`;}).join("");
+document.addEventListener("click",ev=>{ const b=ev.target.closest("[data-open]"); if(b) openCard(b.dataset.open); const f=ev.target.closest(".flowbtn"); if(f) openFlow(f.dataset.flow); const g=ev.target.closest("[data-phase-open]"); if(g) openPhase(Number(g.dataset.phaseOpen)); });
+document.getElementById("flowBtns").innerHTML=Object.entries(FLOWS).map(([k,f],i)=>`<button class="flowbtn" type="button" data-flow="${k}"><span class="n">${i+1}</span><span><b>${esc(f.title)}</b><span>${esc(f.desc)}</span></span></button>`).join("");
+const INTEG=[["hibob","Source of truth for people and the org tree","Read only. Daily plus webhooks","Read-only account, minimum fields"],["okta","SSO, MFA, provisioning, roles","OIDC sign-in, HR-driven provisioning","Same-day removal of leavers"],["outlook","Reminders and invites","Outbound via Microsoft Graph","Title and link only"],["slack","Bot reminders","Outbound only","No content in Slack"],["juno","Learning suggestions","Skill tags out, links back","No goals, ratings or PIPs"],["tmp","Potential, succession, promotions","Released results out","Data contract and DPIA first"],["aimodel","SMART target drafting","Own goal text out, suggestions back","No retention, no training"],["siem","Security monitoring","Audit events out","Alerts on bulk views and exports"]];
+document.getElementById("integRows").innerHTML=INTEG.map(([id,a,b,c])=>{const x=CM[id]; return `<tr><td><button class="hitem" type="button" data-open="${id}" style="background:none;padding:0"><span class="ti">${tileHTML(x).replace('<svg ','<svg width="17" height="17" ')}</span>${esc(x.label)}</button></td><td>${a}</td><td>${b}</td><td>${c}</td><td>${x.phase}</td></tr>`;}).join("");
+const DECR=[["D1","Yes, as a one-way push after release only","HR, HRIS, Legal","Gate 1"],["D2","Manager chain and HR only","HR, Legal","Gate 1"],["D3","One region (EU or Israel), approved by InfoSec","IT, InfoSec, Legal","Gate 1"],["D4","Engage now. A Munich wave may follow later","HR, Legal","Gate 1"],["D5","Yes. Submitted, then Approved, then Published","HR","Gate 2"],["D6","Read-only, during calibration only","HR","Gate 2"],["D7","Pick one rule (the brief and mockups differ)","HR product owner","Gate 2"],["D8","Separate progress from performance, cap attainment","HR product owner","Gate 2"],["D9","Enterprise, no retention, drafting only","IT, InfoSec","Gate 6"],["D10","Choose the platform, then the data contract","HR leadership","Gate 6"],["D11","Per data type: cycles, leavers, audit","Legal, IT","Gate 1"],["D12","Responsive read-only status view","HR, IT","Gate 2"],["D13","Base44 for prototypes only. Claude Code into Cellebrite's own cloud","IT, InfoSec","Gate 1"]];
+document.getElementById("decRows").innerHTML=DECR.map(([d,r,o,g])=>`<tr><td><span class="dpill" style="margin:0">${d}</span></td><td><b>${esc(DEC[d])}</b></td><td>${esc(r)}</td><td>${esc(o)}</td><td><button class="chip btn" type="button" data-phase-open="${g.slice(-1)}">${icon("flag").replace('<svg ','<svg width="14" height="14" ')}${g}</button></td></tr>`).join("");
+
+/* ---------- Gantt ---------- */
+const G0=new Date("2026-11-02T00:00:00"), G1=new Date("2027-03-01T00:00:00"), SPAN=G1-G0;
+const pct=d=>((new Date(d+"T00:00:00"))-G0)/SPAN*100;
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmt(d){ return d.getDate()+" "+MON[d.getMonth()]; }
+(function(){
+  const today="2026-11-09", hol=["2026-12-21","2027-01-01"];
+  const overlay=()=>`<div class="gholiday" style="left:${pct(hol[0])}%;width:${pct(hol[1])-pct(hol[0])}%"></div><div class="gtoday" style="left:${pct(today)}%"></div>`;
+  let h=`<div class="grow ghead"><div class="gl"></div><div class="gtrack">${[["2026-11-02","Nov 2026"],["2026-12-01","Dec"],["2027-01-01","Jan 2027"],["2027-02-01","Feb"]].map(([d,l])=>`<div class="gmonth" style="left:${pct(d)}%">${l}</div>`).join("")}<div class="gtoday" style="left:${pct(today)}%;background:none"><span>Today · 9 Nov</span></div></div></div>`;
+  PH.forEach(p=>{ const l=pct(p.start), w=pct(p.end)-l, d1=new Date(p.start+"T00:00:00"), d2=new Date(p.end+"T00:00:00");
+    h+=`<div class="grow"><div class="gl">${p.n}. ${esc(p.name)}<small>${fmt(d1)} – ${fmt(d2)}</small></div><div class="gtrack">${overlay()}
+      <button class="gbar" type="button" data-phase-open="${p.n}" style="left:${l}%;width:${w}%" aria-label="Open phase ${p.n}: ${esc(p.name)}">${w>9?esc(p.name.split(" ")[0]):p.n}</button>
+      <div class="gdia" style="left:calc(${l+w}% - 8px)"></div><div class="gdia-t" style="left:${l+w}%">G${p.n}</div></div></div>`; });
+  h+=`<div class="gsep"></div>`;
+  WS.forEach(s=>{ const l=pct(s.start), w=Math.min(100,pct(s.end))-l;
+    h+=`<div class="grow ws"><div class="gl">${esc(s.name)}</div><div class="gtrack">${overlay()}<div class="gbar ws ${s.later?"later":""}" style="left:${l}%;width:${w}%">${esc(s.label)}</div></div></div>`; });
+  document.getElementById("gantt").innerHTML=h;
+  document.getElementById("gates").innerHTML=PH.map(p=>`<button class="gate" type="button" data-phase-open="${p.n}"><div class="gn"><b>${p.n}</b><span>Gate G${p.n} · ${fmt(new Date(p.end+"T00:00:00"))}</span></div><h3>${esc(p.name)}</h3><p>${icon("flag")}<span>${esc(p.gate)}</span></p></button>`).join("");
+})();
+
+/* ---------- Follow-up questions ---------- */
+const QG=[
+ {key:"cloud", title:"Cloud & hosting", who:"IT · Cloud platform", icon:"cloud", items:[
+  {q:"Which cloud provider and landing zone do corporate IT apps run on, and can a dedicated VMT account or subscription be created under it?", why:"Decides where every in-cloud component lives (D3).", gate:1, comp:"platform", dec:"D3"},
+  {q:"Is there an approved region or residency policy for HR data (EU, Israel, US)?", why:"About half the staff are in Israel and the rest are spread across several jurisdictions.", gate:1, comp:"maindb", dec:"D3"},
+  {q:"What is the standard hosting pattern for internal apps (containers, Kubernetes, serverless, PaaS), and who owns it?", why:"We should follow the existing pattern, not invent a new one.", gate:2, comp:"platform"},
+  {q:"How are internal apps exposed today: Okta only, ZTNA or VPN, or a private network?", why:"Sets how the web app is reached and protected.", gate:2, comp:"webui"},
+  {q:"What are the backup, RPO and RTO standards for internal business apps?", why:"Sizes backups and the disaster-recovery design.", gate:2, comp:"platform"}]},
+ {key:"identity", title:"Identity & access", who:"IT · IAM", icon:"key", items:[
+  {q:"Is HR-driven provisioning from HiBob to Okta already in place, and how quickly are leavers deactivated?", why:"Leavers must lose access the same day.", gate:1, comp:"okta"},
+  {q:"Who approves a new Okta OIDC app and the VMT-HR and VMT-Admin groups, and how long does that take?", why:"It's on the critical path for development in December.", gate:2, comp:"okta"},
+  {q:"Is phishing-resistant MFA (FastPass or FIDO2) available for HR and admin users?", why:"These users can read ratings for whole orgs.", gate:2, comp:"okta"},
+  {q:"Do all employees, subsidiaries and contractors have a single Okta identity, and are contractors in scope for VMT?", why:"Defines who appears in the org tree and who can sign in.", gate:2, comp:"users"}]},
+ {key:"hris", title:"HiBob & people data", who:"HRIS", icon:"users", items:[
+  {q:"Does your HiBob plan include API access and webhooks, and can we get a read-only service user? What are the rate limits?", why:"The whole org tree and the permission model depend on it.", gate:1, comp:"hibob"},
+  {q:"How accurate is the manager hierarchy: matrix or dotted-line managers, open positions, multiple legal entities?", why:"Wrong manager data means the wrong people see and rate goals.", gate:2, comp:"sync"},
+  {q:"Which identifier links one person across HiBob, Okta and email (employee ID or work email)?", why:"Needed to match sign-ins to people records.", gate:2, comp:"sync"},
+  {q:"Can a released rating be written back to HiBob, and into which field and permission group?", why:"Answers decision D1 (link to compensation).", gate:2, comp:"hibob", dec:"D1"}]},
+ {key:"sec", title:"Security & compliance", who:"InfoSec", icon:"shield", items:[
+  {q:"Are internal corporate apps inside your ISO 27001 and SOC 2 scope, and what does it take to add VMT?", why:"Sets the controls and evidence needed from day one.", gate:1, comp:"audit"},
+  {q:"Where do performance ratings sit in your data classification policy, and what encryption does that level require?", why:"Confirms the Tier 3 design and the separate key.", gate:1, comp:"conf"},
+  {q:"What is the standard for secrets and keys (vault, KMS), and who manages the keys?", why:"The confidential store needs its own key.", gate:2, comp:"platform"},
+  {q:"Which SIEM do you use, which log formats does it accept, and how long are logs kept?", why:"Audit events and alert rules must be ready before the pilot.", gate:3, comp:"siem", dec:"D11"},
+  {q:"Who runs penetration tests, and how much lead time do they need? Which SDLC controls are mandatory (code scanning, reviews)?", why:"The pen test must finish in January, before Gate 4.", gate:3, comp:"platform"}]},
+ {key:"eng", title:"Engineering & delivery", who:"Engineering", icon:"code", items:[
+  {q:"Who builds VMT: an internal team, a contractor or a mix? What is their availability from December to January, including holidays?", why:"Phase 3 runs straight through the year-end holidays.", gate:1, comp:"api"},
+  {q:"Is there a preferred stack for internal apps (language, framework, database)? The brief still says 'TBD'.", why:"Whoever maintains VMT after launch has to own the stack.", gate:1, comp:"api"},
+  {q:"Is Claude Code Enterprise already licensed and approved for internal code? Is Base44 approved for prototypes using synthetic data?", why:"Answers decision D13 on build tooling.", gate:1, comp:"platform", dec:"D13"},
+  {q:"Which repo and CI platform do you use, and what are the branching, review and release policies?", why:"Permission tests have to run as a CI gate.", gate:2, comp:"platform"},
+  {q:"Who owns VMT after launch (on-call, SLA, maintenance budget)?", why:"The brief marks this 'TBD'. It needs an owner before go-live.", gate:1, comp:"platform"}]},
+ {key:"integ", title:"Integrations & data", who:"IT · Collaboration · BI", icon:"link", items:[
+  {q:"What is the approval process for a Microsoft Graph app that sends mail from a service mailbox?", why:"Outlook reminders are part of the MVP.", gate:3, comp:"outlook"},
+  {q:"Is Slack on Enterprise Grid, and how are bot apps approved?", why:"Slack follows the pilot, so we need to plan the approval.", gate:5, comp:"slack"},
+  {q:"Which BI platform will consume VMT data, and is a scheduled feed needed instead of manual exports?", why:"Shapes the design of the export service.", gate:4, comp:"export"},
+  {q:"Is there an approved enterprise LLM agreement with no data retention, and an AI usage policy that covers HR data?", why:"Answers decision D9 for the AI gateway.", gate:6, comp:"aimodel", dec:"D9"},
+  {q:"Juno: what API access, SSO and skill taxonomy are available? Talent platform: has a product been chosen yet?", why:"Determines the post-launch feeds (D10).", gate:6, comp:"juno", dec:"D10"},
+  {q:"Is there an existing process or tool for retention schedules and employee data requests?", why:"VMT should plug into it rather than build its own (D11).", gate:1, comp:"audit", dec:"D11"}]}
+];
+let qDone=new Set(); try{ qDone=new Set(JSON.parse(localStorage.getItem("vmt-q-done")||"[]")); }catch(e){}
+const saveQ=()=>{ try{ localStorage.setItem("vmt-q-done",JSON.stringify([...qDone])); }catch(e){} };
+let qFilter="all"; let qn=0; QG.forEach(g=>g.items.forEach(it=>{ it.n=++qn; it.id=g.key+"-"+qn; }));
+const ALLQ=QG.flatMap(g=>g.items.map(it=>({...it,g})));
+document.getElementById("qFilters").innerHTML=`<button class="qf" type="button" data-qf="all" aria-pressed="true">All <b>${ALLQ.length}</b></button>`+QG.map(g=>`<button class="qf" type="button" data-qf="${g.key}" aria-pressed="false">${esc(g.title)} <b>${g.items.length}</b></button>`).join("");
+function qTag(it){
+  let h=`<button class="qtag ${it.gate===1?"blk":""}" type="button" data-phase-open="${it.gate}" title="Open phase ${it.gate}">${icon("flag")}${it.gate===1?"Blocks G1":"Needed by G"+it.gate}</button>`;
+  if(it.comp){ const c=CM[it.comp]; h+=`<button class="qtag" type="button" data-open="${it.comp}">${c.logo?`<img src="${LOGOS[c.logo]}" alt="">`:icon(c.icon||"layers",kcol(c.kind))}${esc(c.label)}</button>`; }
+  if(it.dec) h+=`<span class="qtag" style="cursor:default" title="${esc(DEC[it.dec])}">${it.dec} · ${esc(DEC[it.dec])}</span>`;
+  return h;
+}
+document.getElementById("qGroups").innerHTML=QG.map(g=>`<div class="qgroup" data-g="${g.key}">
+  <header><span class="ic">${icon(g.icon)}</span><div><h3>${esc(g.title)}</h3><small>Ask: ${esc(g.who)}</small></div><span class="cnt" data-cnt="${g.key}"></span></header>
+  ${g.items.map(it=>`<div class="qitem" data-q="${it.id}" data-gate="${it.gate}"><input type="checkbox" aria-label="Mark question ${it.n} as answered" ${qDone.has(it.id)?"checked":""}><div><div class="qq"><span class="n">Q${it.n}</span>${esc(it.q)}</div><div class="why">${esc(it.why)}</div><div class="qm">${qTag(it)}</div></div></div>`).join("")}
+</div>`).join("");
+function qApply(){
+  const blk=document.getElementById("qBlockers").checked, hideDone=document.getElementById("qOpen").checked;
+  QG.forEach(g=>{ let vis=0, done=0;
+    g.items.forEach(it=>{ const row=document.querySelector(`[data-q="${it.id}"]`); const d=qDone.has(it.id); row.classList.toggle("done",d); if(d) done++;
+      const show=(qFilter==="all"||qFilter===g.key) && (!blk||it.gate===1) && (!hideDone||!d); row.classList.toggle("hide",!show); if(show) vis++; });
+    document.querySelector(`[data-g="${g.key}"]`).classList.toggle("hide",vis===0);
+    document.querySelector(`[data-cnt="${g.key}"]`).textContent=`${done}/${g.items.length} answered`; });
+  const tot=ALLQ.length, dn=ALLQ.filter(x=>qDone.has(x.id)).length, b=ALLQ.filter(x=>x.gate===1), bd=b.filter(x=>qDone.has(x.id)).length;
+  document.getElementById("qStats").innerHTML=`
+    <div class="qstat"><b>${tot}</b><span>questions</span></div>
+    <div class="qstat"><b class="red">${b.length-bd}</b><span>open Gate 1 blockers</span></div>
+    <div class="qstat"><b>${QG.length}</b><span>teams to ask</span></div>
+    <div class="qstat"><b>${Math.round(dn/tot*100)}%</b><span>answered</span><div class="bar"><i style="width:${dn/tot*100}%"></i></div></div>`;
+}
+document.getElementById("qGroups").addEventListener("change",ev=>{ const row=ev.target.closest("[data-q]"); if(!row) return; ev.target.checked?qDone.add(row.dataset.q):qDone.delete(row.dataset.q); saveQ(); qApply(); });
+document.getElementById("qFilters").addEventListener("click",ev=>{ const b=ev.target.closest("[data-qf]"); if(!b) return; qFilter=b.dataset.qf; document.querySelectorAll("[data-qf]").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); qApply(); });
+["qBlockers","qOpen"].forEach(i=>document.getElementById(i).addEventListener("change",qApply));
+document.getElementById("qCopy").addEventListener("click",()=>{
+  const lines=["VMT – follow-up questions for Cellebrite IT & Engineering",""];
+  QG.forEach(g=>{ const open=g.items.filter(it=>!qDone.has(it.id)); if(!open.length) return;
+    lines.push(`${g.title} (ask: ${g.who})`); open.forEach(it=>lines.push(`  Q${it.n}. ${it.q}${it.gate===1?"  [Blocks Gate 1]":`  [Needed by Gate ${it.gate}]`}`)); lines.push(""); });
+  const txt=lines.join("\n"); const t=document.getElementById("qCopyT");
+  const done=()=>{ t.textContent="Copied ✓"; setTimeout(()=>t.textContent="Copy open questions",1800); };
+  const fallback=()=>{ const ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); done(); }catch(e){} ta.remove(); };
+  if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(txt).then(done,fallback); else fallback();
+});
+qApply();
+
+/* ---------- Nav highlighting & deep links ---------- */
+const links=[...document.querySelectorAll(".nav-links a")];
+if("IntersectionObserver" in window){ const io=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting) links.forEach(a=>a.classList.toggle("active",a.getAttribute("href")==="#"+en.target.id)); }),{rootMargin:"-40% 0px -55% 0px"}); document.querySelectorAll("section[id]").forEach(s=>io.observe(s)); }
+(function route(){ const h=decodeURIComponent(location.hash||""); let m;
+  if((m=h.match(/^#c\/(.+)$/))&&CM[m[1]]) openCard(m[1]);
+  else if((m=h.match(/^#f\/(.+)$/))&&FLOWS[m[1]]) openFlow(m[1]);
+  else if((m=h.match(/^#p\/(\d)$/))) openPhase(Number(m[1])); })();
+})();
+</script>
+</body>
+</html>
